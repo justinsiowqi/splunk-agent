@@ -8,7 +8,6 @@ from h2ogpte import H2OGPTE
 MCP_CONFIG_PATH = "mcp_config.json"
 _PLACEHOLDER = "YOUR_SPLUNK_MCP_URL"
 
-
 def _load_mcp_config() -> str:
     """Read mcp_config.json and substitute the MCP URL from the environment."""
     splunk_mcp_url = os.getenv("SPLUNK_MCP_URL")

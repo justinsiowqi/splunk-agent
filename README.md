@@ -12,13 +12,36 @@ This project sets up an H2OGPTE multi-agent pipeline that:
 4. Enables natural language querying of Splunk data through an LLM agent
 
 ```
-User Prompt
-    │
-    ▼
-H2OGPTE LLM Agent
-    │   (mcp_tool_runner)
-    ▼
-Splunk MCP Server  ──►  Splunk Instance
+YOUR MACHINE
+┌─────────────────────────────────────────────────────┐
+│                                                     │
+│  curl / other agent                                 │
+│       │ HTTP POST                                   │
+│       ▼                                             │
+│  A2A Server (server.py)          port 8080          │
+│       │ calls query_splunk_agent()                  │
+│       │                                             │
+│  Splunk web UI                   port 8000          │
+│  Splunk MCP Server               port 8089          │
+│       ▲                                             │
+│       │ ngrok tunnels this port                     │
+└───────┼─────────────────────────────────────────────┘
+        │
+        │ public HTTPS
+        ▼
+   ngrok.io URL  (the URL in mcp_config.json)
+        │
+        │ public HTTPS (outbound from H2OGPTE)
+        ▼
+┌─────────────────────────────────────────────────────┐
+│  H2OGPTE  (H2O cloud)                               │
+│                                                     │
+│  LLM Agent  ──────►  MCP Tool Runner                │
+│                           │                         │
+│                           │ npx mcp-remote          │
+│                           │ → ngrok URL             │
+│                           │ → calls Splunk tools    │
+└─────────────────────────────────────────────────────┘
 ```
 
 ## Prerequisites
@@ -30,9 +53,20 @@ Splunk MCP Server  ──►  Splunk Instance
 
 ## Installation
 
+### 1. Clone the repository
 ```bash
 git clone https://github.com/your-org/splunk-agent.git
 cd splunk-agent
+```
+
+### 2. Create and activate a virtual environment: 
+```bash
+python -m venv .venv
+source .venv/bin/activate
+```
+
+### 3. Install Python dependencies
+```bash
 pip install -r requirements.txt
 ```
 
@@ -51,56 +85,34 @@ cp .env.example .env
 | `H2OGPTE_API_KEY` | Your H2OGPTE API key |
 | `H2OGPTE_ADDRESS` | H2OGPTE server URL (e.g. `https://your-instance.h2o.ai`) |
 | `SPLUNK_MCP_TOKEN` | Bearer token for your Splunk MCP server |
-
-### 2. MCP server config
-
-Edit `mcp_config.json` to point to your Splunk MCP server endpoint:
-
-```json
-{
-  "mcpServers": {
-    "splunk": {
-      "command": "npx",
-      "args": [
-        "mcp-remote",
-        "https://<your-splunk-mcp-host>/services/mcp",
-        "--header",
-        "Authorization: Bearer os.environ/SPLUNK_MCP_TOKEN"
-      ],
-      "env": {
-        "SPLUNK_MCP_TOKEN": "os.environ/SPLUNK_MCP_TOKEN",
-        "NODE_TLS_REJECT_UNAUTHORIZED": "0"
-      },
-      "tool_usage_mode": ["runner", "creator"]
-    }
-  }
-}
-```
+| `A2A_HOST` | Default is localhost |
+| `A2A_PORT` | Defauly is 8080 (avoid 8000 and 8089 for Splunk) |
 
 ## Usage
 
-Run the full setup and execute a sample query:
+Run the A2A Server
 
 ```bash
-python main.py
+python server.py
 ```
 
-### Using the package in your own scripts
+Run the Curl Command
 
-After the one-time setup, you can query the agent directly:
-
-```python
-from splunk_agent import create_client, query_splunk_agent
-
-client = create_client()
-
-response = query_splunk_agent(
-    client=client,
-    collection_id="<your-collection-id>",
-    user_prompt="Show me the last 10 error events from index=main",
-    system_prompt="You are a Splunk expert. Use the available Splunk tools.",
-)
-print(response)
+```bash
+splunk-agent % curl -X POST http://localhost:8080/ \
+  -H "Content-Type: application/json" \
+  -d '{
+    "jsonrpc": "2.0",
+    "id": "1",
+    "method": "message/send",
+    "params": {
+      "message": {
+        "messageId": "msg-001",
+        "role": "user",
+        "parts": [{"kind": "text", "text": "Tell me the Splunk version."}]
+      }
+    }
+  }'
 ```
 
 ## Project Structure
@@ -111,8 +123,11 @@ splunk-agent/
 │   ├── __init__.py       # Public API exports
 │   ├── client.py         # H2OGPTE client initialisation
 │   ├── setup.py          # Collection, ingestion, and tool registration
-│   └── query.py          # Chat session and LLM querying
+│   ├── query.py          # Chat session and LLM querying
+│   ├── agent.py          # Agent Card
+│   └── agent_executor.py # Agent Exector Logic
 ├── main.py               # Entry point — runs full setup + sample query
+├── server.py             # Start A2A Server
 ├── mcp_config.json       # Splunk MCP server configuration
 ├── requirements.txt
 ├── .env.example

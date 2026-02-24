@@ -2,7 +2,7 @@ from h2ogpte import H2OGPTE
 
 DEFAULT_LLM = "openai/gpt-oss-120b"
 DEFAULT_AGENT_TYPE = "mcp_tool_runner"
-DEFAULT_AGENT_TOOLS = ["splunk", "litellm_tool_runner.py"]
+DEFAULT_AGENT_TOOLS = ["splunk"]
 
 
 def query_splunk_agent(
