@@ -1,0 +1,21 @@
+{
+  "mcpServers": {
+    "splunk": {
+      "command": "npx",
+      "args": [
+        "mcp-remote",
+        "YOUR_SPLUNK_MCP_URL",
+        "--header",
+        "Authorization: Bearer os.environ/SPLUNK_MCP_TOKEN"
+      ],
+      "env": {
+        "SPLUNK_MCP_TOKEN": "os.environ/SPLUNK_MCP_TOKEN",
+        "NODE_TLS_REJECT_UNAUTHORIZED": "0"
+      },
+      "tool_usage_mode": [
+        "runner",
+        "creator"
+      ]
+    }
+  }
+}

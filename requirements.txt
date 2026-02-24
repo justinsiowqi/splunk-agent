@@ -1,0 +1,2 @@
+h2ogpte==1.6.55
+python-dotenv==1.2.1
