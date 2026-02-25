@@ -86,7 +86,7 @@ cp .env.example .env
 | `H2OGPTE_ADDRESS` | H2OGPTE server URL (e.g. `https://your-instance.h2o.ai`) |
 | `SPLUNK_MCP_TOKEN` | Bearer token for your Splunk MCP server |
 | `A2A_HOST` | Default is localhost |
-| `A2A_PORT` | Defauly is 8080 (avoid 8000 and 8089 for Splunk) |
+| `A2A_PORT` | Default is 8080 (avoid 8000 and 8089 for Splunk) |
 
 ## Usage
 
