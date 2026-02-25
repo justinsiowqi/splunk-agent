@@ -92,6 +92,8 @@ cp .env.example .env
 | `SPLUNK_MCP_TOKEN` | Bearer token for your Splunk MCP server |
 | `A2A_HOST` | Default is localhost |
 | `A2A_PORT` | Default is 8080 (avoid 8000 and 8089 for Splunk) |
+| `SPLUNK_EXPLORER_AGENT_URL` | URL for the Splunk Explorer Agent |
+| `SPLUNK_ANALYST_AGENT_URL` | URL for the Splunk Analyst Agent |
 
 ## Usage
 

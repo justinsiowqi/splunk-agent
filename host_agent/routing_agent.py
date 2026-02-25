@@ -23,7 +23,7 @@ from .remote_agent_connection import (
     RemoteAgentConnections,
     TaskUpdateCallback,
 )
-from splunk_agent.client import create_client
+from splunk_explorer_agent.client import create_client
 
 
 load_dotenv()
@@ -36,6 +36,11 @@ Available agents:
 {agents}
 
 Currently active agent: {active_agent}
+
+ROUTING GUIDELINES:
+- Use the Explorer Agent for questions about what data exists: listing indexes, checking metadata (hosts, sources, sourcetypes), getting Splunk instance info, or inspecting KV Store collections.
+- Use the Analyst Agent for questions that require running SPL queries, retrieving search results, accessing knowledge objects (saved searches, alerts, macros), or getting detailed index configuration.
+- If the user's intent is ambiguous, prefer the Explorer Agent first for discovery, then the Analyst Agent for deeper analysis.
 
 You MUST respond with ONLY a JSON object in one of these exact formats:
 
@@ -326,7 +331,8 @@ def get_routing_agent_sync() -> RoutingAgent:
     async def _async_main() -> RoutingAgent:
         return await RoutingAgent.create(
             remote_agent_addresses=[
-                os.getenv('SPLUNK_ANALYST_AGENT_URL', 'http://localhost:8080'),
+                os.getenv('SPLUNK_EXPLORER_AGENT_URL', 'http://localhost:8080'),
+                os.getenv('SPLUNK_ANALYST_AGENT_URL', 'http://localhost:8082')
             ]
         )
 

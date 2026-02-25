@@ -6,7 +6,7 @@ from a2a.utils import new_agent_text_message
 from a2a.types import UnsupportedOperationError
 from .query import query_splunk_agent
 
-class SplunkAgentExecutor(AgentExecutor):
+class SplunkExplorerAgentExecutor(AgentExecutor):
     def __init__(self, client, collection_id: str):
         self.client = client
         self.collection_id = collection_id
