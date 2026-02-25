@@ -28,8 +28,8 @@ def _load_mcp_config() -> str:
 def create_collection(client: H2OGPTE) -> str:
     """Create a new H2OGPTE collection for the Splunk agent."""
     collection_id = client.create_collection(
-        name="H2O Splunk Agent",
-        description="H2OGPTE Splunk Multi-Agent with MCP",
+        name="Splunk Analyst Agent",
+        description="Splunk Analyst Agent with Splunk Remote MCP Tool Capabilities",
     )
     print(f"Collection created: {collection_id}")
     return collection_id
