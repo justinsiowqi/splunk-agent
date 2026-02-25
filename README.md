@@ -13,19 +13,24 @@ This project sets up an H2OGPTE multi-agent pipeline that:
 
 ```
 YOUR MACHINE
-┌─────────────────────────────────────────────────────┐
-│                                                     │
-│  curl / other agent                                 │
-│       │ HTTP POST                                   │
-│       ▼                                             │
-│  A2A Server (server.py)          port 8080          │
-│       │ calls query_splunk_agent()                  │
-│       │                                             │
-│  Splunk web UI                   port 8000          │
-│  Splunk MCP Server               port 8089          │
-│       ▲                                             │
-│       │ ngrok tunnels this port                     │
-└───────┼─────────────────────────────────────────────┘
+┌──────────────────────────────────────────────────────────┐
+│                                                          │
+│  User (Gradio UI)                  port 8083             │
+│       │                                                  │
+│       ▼                                                  │
+│  Routing Agent (host_agent/)                             │
+│       │ H2OGPTE LLM decides which agent to call         │
+│       │                                                  │
+│       │ A2A SendMessageRequest                           │
+│       ▼                                                  │
+│  Splunk Agent (server.py)          port 8080             │
+│       │ calls query_splunk_agent()                       │
+│       │                                                  │
+│  Splunk web UI                     port 8000             │
+│  Splunk MCP Server                 port 8089             │
+│       ▲                                                  │
+│       │ ngrok tunnels this port                          │
+└───────┼──────────────────────────────────────────────────┘
         │
         │ public HTTPS
         ▼
@@ -33,15 +38,15 @@ YOUR MACHINE
         │
         │ public HTTPS (outbound from H2OGPTE)
         ▼
-┌─────────────────────────────────────────────────────┐
-│  H2OGPTE  (H2O cloud)                               │
-│                                                     │
-│  LLM Agent  ──────►  MCP Tool Runner                │
-│                           │                         │
-│                           │ npx mcp-remote          │
-│                           │ → ngrok URL             │
-│                           │ → calls Splunk tools    │
-└─────────────────────────────────────────────────────┘
+┌──────────────────────────────────────────────────────────┐
+│  H2OGPTE  (H2O cloud)                                    │
+│                                                          │
+│  LLM Agent  ──────►  MCP Tool Runner                     │
+│                           │                              │
+│                           │ npx mcp-remote               │
+│                           │ → ngrok URL                  │
+│                           │ → calls Splunk tools         │
+└──────────────────────────────────────────────────────────┘
 ```
 
 ## Prerequisites
@@ -90,45 +95,47 @@ cp .env.example .env
 
 ## Usage
 
-Run the A2A Server
+### 1. Run the A2A Server
 
 ```bash
 python server.py
 ```
 
-Run the Curl Command
+### 2. Run the ngrok Tunnel
 
+Open a new terminal and run:
 ```bash
-splunk-agent % curl -X POST http://localhost:8080/ \
-  -H "Content-Type: application/json" \
-  -d '{
-    "jsonrpc": "2.0",
-    "id": "1",
-    "method": "message/send",
-    "params": {
-      "message": {
-        "messageId": "msg-001",
-        "role": "user",
-        "parts": [{"kind": "text", "text": "Tell me the Splunk version."}]
-      }
-    }
-  }'
+ngrok http https://localhost:8089
 ```
+
+### 3. Run the Routing Agent
+
+Open a new terminal and run:
+```bash
+PYTHONPATH=. python -m host_agent
+```
+
 
 ## Project Structure
 
 ```
 splunk-agent/
-├── splunk_agent/
-│   ├── __init__.py       # Public API exports
-│   ├── client.py         # H2OGPTE client initialisation
-│   ├── setup.py          # Collection, ingestion, and tool registration
-│   ├── query.py          # Chat session and LLM querying
-│   ├── agent.py          # Agent Card
-│   └── agent_executor.py # Agent Exector Logic
-├── main.py               # Entry point — runs full setup + sample query
-├── server.py             # Start A2A Server
-├── mcp_config.json       # Splunk MCP server configuration
+├── splunk_agent/              # Splunk A2A agent (server)
+│   ├── __init__.py            # Public API exports
+│   ├── client.py              # H2OGPTE client initialisation
+│   ├── setup.py               # Collection, ingestion, and tool registration
+│   ├── query.py               # Chat session and LLM querying
+│   ├── agent.py               # A2A Agent Card
+│   └── agent_executor.py      # A2A Agent Executor
+├── host_agent/                # Routing agent (client / orchestrator)
+│   ├── __init__.py
+│   ├── __main__.py            # Gradio UI entry point
+│   ├── routing_agent.py       # H2OGPTE-powered routing logic
+│   ├── remote_agent_connection.py  # A2A client connections
+│   └── example.env
+├── server.py                  # Start Splunk A2A server
+├── main.py                    # One-shot test script
+├── mcp_config.json            # Splunk MCP server configuration
 ├── requirements.txt
 ├── .env.example
 ├── .gitignore
