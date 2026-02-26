@@ -193,16 +193,146 @@ class RoutingAgent:
                 return await self._fallback_delegate(user_message)
 
             try:
+                if self._is_jira_agent(agent_name):
+                    return await self._delegate_to_jira_with_upstream(
+                        user_message=user_message, jira_task=task
+                    )
                 result = await self.send_message(agent_name, task)
                 if result is None:
                     return f"Error: No response received from agent '{agent_name}'."
                 return result
             except ValueError as e:
                 return f'Error: {e}'
+        elif action == 'delegate_workflow':
+            steps = decision.get('steps')
+            if not isinstance(steps, list) or not steps:
+                return await self._fallback_delegate(user_message)
+            return await self._execute_workflow(steps, user_message=user_message)
         else:
             # LLM returned JSON but didn't follow the format —
             # delegate the original user message to the first available agent.
             return await self._fallback_delegate(user_message)
+
+    def _is_jira_agent(self, agent_name: str) -> bool:
+        return 'jira' in agent_name.lower()
+
+    def _is_explorer_or_analyst_agent(self, agent_name: str) -> bool:
+        lowered = agent_name.lower()
+        return 'explorer' in lowered or 'analyst' in lowered
+
+    def _pick_upstream_agent(self, user_message: str) -> str | None:
+        """Pick explorer/analyst as Jira upstream based on context."""
+        if self.active_agent and self._is_explorer_or_analyst_agent(self.active_agent):
+            return self.active_agent
+
+        lowered_message = user_message.lower()
+        explorer_hints = ['index', 'indexes', 'metadata', 'source', 'sourcetype', 'host', 'kv']
+        analyst_hints = ['spl', 'query', 'search', 'correlat', 'analy', 'result']
+
+        if any(token in lowered_message for token in explorer_hints):
+            return next(
+                (name for name in self.remote_agent_connections if 'explorer' in name.lower()),
+                None,
+            )
+        if any(token in lowered_message for token in analyst_hints):
+            return next(
+                (name for name in self.remote_agent_connections if 'analyst' in name.lower()),
+                None,
+            )
+
+        # Default to analyst for evidence generation when intent is generic.
+        return next(
+            (name for name in self.remote_agent_connections if 'analyst' in name.lower()),
+            None,
+        ) or next(
+            (name for name in self.remote_agent_connections if 'explorer' in name.lower()),
+            None,
+        )
+
+    async def _delegate_to_jira_with_upstream(
+        self, user_message: str, jira_task: str
+    ) -> str:
+        """Ensure Jira actions are always grounded in explorer/analyst output."""
+        upstream_agent = self._pick_upstream_agent(user_message)
+        jira_agent = next(
+            (name for name in self.remote_agent_connections if self._is_jira_agent(name)),
+            None,
+        )
+        if not upstream_agent or not jira_agent:
+            return 'Error: Could not resolve upstream or Jira agent for workflow.'
+
+        upstream_task = (
+            "Generate validated findings/evidence for Jira action based on this request. "
+            "Include concise facts and suggested ticket fields where possible.\n\n"
+            f"User request:\n{user_message}"
+        )
+        steps = [
+            {'agent_name': upstream_agent, 'task': upstream_task},
+            {'agent_name': jira_agent, 'task': jira_task},
+        ]
+        return await self._execute_workflow(steps, user_message=user_message)
+
+    async def _execute_workflow(
+        self, steps: list[dict[str, Any]], user_message: str | None = None
+    ) -> str:
+        """Execute a sequence of delegations and pass context across steps."""
+        if not steps:
+            return 'Error: Workflow must include at least one step.'
+
+        # Guardrail: if Jira appears, ensure explorer/analyst runs before it.
+        jira_index = next(
+            (
+                i
+                for i, step in enumerate(steps)
+                if self._is_jira_agent(str(step.get('agent_name', '')))
+            ),
+            None,
+        )
+        if jira_index == 0:
+            upstream_agent = self._pick_upstream_agent(user_message or '')
+            if upstream_agent:
+                upstream_task = (
+                    "Generate validated findings/evidence for Jira action from the "
+                    "following user request.\n\n"
+                    f"User request:\n{user_message or ''}"
+                )
+                steps = [{'agent_name': upstream_agent, 'task': upstream_task}] + steps
+
+        step_results: list[dict[str, str]] = []
+
+        for index, step in enumerate(steps, start=1):
+            agent_name = step.get('agent_name')
+            task = step.get('task')
+
+            if not agent_name or not task:
+                return 'Error: Workflow step is missing agent_name or task.'
+
+            if step_results:
+                previous_outputs = '\n\n'.join(
+                    [
+                        f"Step {result['step']} ({result['agent_name']}) output:\n{result['output']}"
+                        for result in step_results
+                    ]
+                )
+                task = (
+                    f"{task}\n\n"
+                    "Use the following verified outputs from previous steps as context:\n"
+                    f"{previous_outputs}"
+                )
+
+            result = await self.send_message(agent_name, task)
+            if result is None:
+                return f"Error: No response received from agent '{agent_name}' in workflow."
+
+            step_results.append(
+                {
+                    'step': str(index),
+                    'agent_name': agent_name,
+                    'output': result,
+                }
+            )
+
+        return step_results[-1]['output']
 
     async def _fallback_delegate(self, user_message: str) -> str:
         """Delegate to the first available agent when LLM routing fails."""
@@ -315,7 +445,8 @@ def get_routing_agent_sync() -> RoutingAgent:
         return await RoutingAgent.create(
             remote_agent_addresses=[
                 os.getenv('SPLUNK_EXPLORER_AGENT_URL', 'http://localhost:8080'),
-                os.getenv('SPLUNK_ANALYST_AGENT_URL', 'http://localhost:8082')
+                os.getenv('SPLUNK_ANALYST_AGENT_URL', 'http://localhost:8082'),
+                os.getenv('JIRA_ACTION_AGENT_URL', 'http://localhost:8084'),
             ]
         )
 
