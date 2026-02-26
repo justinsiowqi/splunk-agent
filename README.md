@@ -16,7 +16,7 @@ YOUR MACHINE
 │       ├──────────────────────────┐                       │
 │       │ A2A                      │ A2A                   │
 │       ▼                          ▼                       │
-│  Explorer Agent    Analyst Agent                         │
+│  Inventory Agent    Query Agent                          │
 │  port 8080         port 8082                             │
 │  (discovery)       (query execution)                     │
 │                                                          │
@@ -73,8 +73,8 @@ Edit `.env` with your credentials:
 | `SPLUNK_HEC_TOKEN` | HEC token from Splunk app |
 | `SPLUNK_MCP_URL` | ngrok public URL pointing to Splunk MCP (port 8089) |
 | `SPLUNK_MCP_TOKEN` | Bearer token from Splunk MCP Server app |
-| `SPLUNK_INVENTORY_AGENT_URL` | Explorer Agent URL (default: `http://localhost:8080`) |
-| `SPLUNK_QUERY_AGENT_URL` | Analyst Agent URL (default: `http://localhost:8082`) |
+| `SPLUNK_INVENTORY_AGENT_URL` | Inventory Agent URL (default: `http://localhost:8080`) |
+| `SPLUNK_QUERY_AGENT_URL` | Query Agent URL (default: `http://localhost:8082`) |
 
 ### 3. Start Splunk
 

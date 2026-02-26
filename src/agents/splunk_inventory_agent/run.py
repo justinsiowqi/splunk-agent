@@ -36,6 +36,7 @@ def run_splunk_agent(
                 agent_type=inventory_config["agent_type"],
                 agent_tools=inventory_config["agent_tools"],
             ),
+            rag_config={"rag_type": "llm_only"},
         )
 
     return reply.content

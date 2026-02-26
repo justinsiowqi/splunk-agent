@@ -163,11 +163,11 @@ class RoutingAgent:
                     "type": "string",
                     "enum": agent_names,
                 },
-                "message": {
+                "reasoning": {
                     "type": "string",
                 },
             },
-            "required": ["agent_name", "message"]
+            "required": ["agent_name", "reasoning"]
         }
 
         # Call H2OGPTE LLM for routing decision (sync call wrapped in thread)
@@ -197,16 +197,16 @@ class RoutingAgent:
             return await self._fallback_delegate(user_message)
 
         agent_name = decision.get('agent_name')
-        message = decision.get('message')
+        reasoning = decision.get('reasoning', '')
 
         # Direct response (greeting / out-of-scope)
         if not agent_name or agent_name == 'none':
-            return message or 'How can I help you with Splunk today?'
+            return 'Hello! I can help you explore your Splunk environment or search event data. What would you like to do?'
 
-        # Delegate to the named agent
+        # Delegate to the named agent — always pass the original user message
         if agent_name in self.remote_agent_connections:
             try:
-                result = await self.send_message(agent_name, message or user_message)
+                result = await self.send_message(agent_name, user_message)
                 if result is None:
                     return f"Error: No response received from agent '{agent_name}'."
                 return result
