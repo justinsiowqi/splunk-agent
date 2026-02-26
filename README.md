@@ -76,7 +76,13 @@ Edit `.env` with your credentials:
 | `SPLUNK_EXPLORER_AGENT_URL` | Explorer Agent URL (default: `http://localhost:8080`) |
 | `SPLUNK_ANALYST_AGENT_URL` | Analyst Agent URL (default: `http://localhost:8082`) |
 
-### 3. Start ngrok
+### 3. Start Splunk
+
+```bash
+/Applications/Splunk/bin/splunk start
+```
+
+### 4. Start ngrok
 
 ```bash
 ngrok http https://localhost:8089
@@ -84,7 +90,7 @@ ngrok http https://localhost:8089
 
 Copy the public URL into `SPLUNK_MCP_URL` in your `.env` file.
 
-### 4. Run the agents
+### 5. Run the agents
 
 Open three terminals:
 

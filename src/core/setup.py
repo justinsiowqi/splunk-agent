@@ -5,6 +5,7 @@ import time
 
 from h2ogpte import H2OGPTE
 
+MCP_NAME = "splunk"
 MCP_CONFIG_PATH = "mcp_config.json"
 _PLACEHOLDER = "YOUR_SPLUNK_MCP_URL"
 
@@ -106,7 +107,7 @@ def setup_agent_keys(client: H2OGPTE) -> None:
 
     client.assign_agent_key_for_tool([{
         "tool_dict": {
-            "tool": MCP_CONFIG_PATH,
+            "tool": MCP_NAME,
             "keys": [{"name": name, "key_id": kid} for name, kid in existing.items()],
         }
     }])
