@@ -76,7 +76,6 @@ class RoutingAgent:
         self.chat_session_id: str | None = None
         # Instance-level state (replaces ADK context.state)
         self.session_id: str = str(uuid.uuid4())
-        self.active_agent: str | None = None
 
     async def _async_init_components(
         self, remote_agent_addresses: list[str]
@@ -150,11 +149,26 @@ class RoutingAgent:
         Returns:
             The response text from the remote agent, or a direct response.
         """
-        # Build the system prompt with current agent roster and active agent
+        # Build the system prompt with current agent roster 
         system_prompt = prompt.format(
-            agents=self.agents,
-            active_agent=self.active_agent or 'None',
+            agents=self.agents
         )
+
+        # Define the strict schema for the router
+        agent_names = list(self.remote_agent_connections.keys()) + ["none"]
+        routing_schema = {
+            "type": "object",
+            "properties": {
+                "agent_name": {
+                    "type": "string",
+                    "enum": agent_names,
+                },
+                "message": {
+                    "type": "string",
+                },
+            },
+            "required": ["agent_name", "message"]
+        }
 
         # Call H2OGPTE LLM for routing decision (sync call wrapped in thread)
         def _query_llm():
@@ -164,9 +178,12 @@ class RoutingAgent:
                     system_prompt=system_prompt,
                     llm=host_config["llm"],
                     llm_args=dict(
-                        response_format='json_object',
                         temperature=host_config["temperature"],
+                        response_format='json_object',
+                        guided_json=routing_schema,
                     ),
+                    rag_config={"rag_type": "llm_only"},
+                    include_chat_history="off"
                 )
             return reply.content
 
@@ -177,32 +194,27 @@ class RoutingAgent:
         try:
             decision = json.loads(llm_response)
         except json.JSONDecodeError:
-            # LLM didn't return valid JSON — fall back to delegating the
-            # original user message to the first available agent.
             return await self._fallback_delegate(user_message)
 
-        action = decision.get('action')
+        agent_name = decision.get('agent_name')
+        message = decision.get('message')
 
-        if action == 'respond':
-            return decision.get('message', 'No response provided.')
+        # Direct response (greeting / out-of-scope)
+        if not agent_name or agent_name == 'none':
+            return message or 'How can I help you with Splunk today?'
 
-        elif action == 'delegate':
-            agent_name = decision.get('agent_name')
-            task = decision.get('task')
-            if not agent_name or not task:
-                return await self._fallback_delegate(user_message)
-
+        # Delegate to the named agent
+        if agent_name in self.remote_agent_connections:
             try:
-                result = await self.send_message(agent_name, task)
+                result = await self.send_message(agent_name, message or user_message)
                 if result is None:
                     return f"Error: No response received from agent '{agent_name}'."
                 return result
             except ValueError as e:
                 return f'Error: {e}'
-        else:
-            # LLM returned JSON but didn't follow the format —
-            # delegate the original user message to the first available agent.
-            return await self._fallback_delegate(user_message)
+
+        # Unknown agent name — fallback
+        return await self._fallback_delegate(user_message)
 
     async def _fallback_delegate(self, user_message: str) -> str:
         """Delegate to the first available agent when LLM routing fails."""
@@ -265,7 +277,6 @@ class RoutingAgent:
         if agent_name not in self.remote_agent_connections:
             raise ValueError(f'Agent {agent_name} not found')
 
-        self.active_agent = agent_name
         client = self.remote_agent_connections[agent_name]
 
         if not client:
@@ -314,8 +325,8 @@ def get_routing_agent_sync() -> RoutingAgent:
     async def _async_main() -> RoutingAgent:
         return await RoutingAgent.create(
             remote_agent_addresses=[
-                os.getenv('SPLUNK_EXPLORER_AGENT_URL', 'http://localhost:8080'),
-                os.getenv('SPLUNK_ANALYST_AGENT_URL', 'http://localhost:8082')
+                os.getenv('SPLUNK_INVENTORY_AGENT_URL', 'http://localhost:8080'),
+                os.getenv('SPLUNK_QUERY_AGENT_URL', 'http://localhost:8082')
             ]
         )
 

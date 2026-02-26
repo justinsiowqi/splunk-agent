@@ -13,8 +13,8 @@ from a2a.server.apps import A2AStarletteApplication
 from a2a.server.request_handlers import DefaultRequestHandler
 from a2a.server.tasks import InMemoryTaskStore
 
-from .analyst_executor import SplunkAnalystAgentExecutor
-from .analyst_agent import build_agent_card
+from .query_executor import SplunkQueryAgentExecutor
+from .query_agent import build_agent_card
 
 from src.core.client import create_client
 from src.core.setup import (
@@ -66,7 +66,7 @@ def main(
     port: int = DEFAULT_PORT,
     log_level: str = DEFAULT_LOG_LEVEL,
 ):
-    """Start the Splunk Analyst Agent A2A server."""
+    """Start the Splunk Query Agent A2A server."""
 
     async def run_server_async():
         async with app_lifespan(app_context):
@@ -76,13 +76,13 @@ def main(
                     file=sys.stderr,
                 )
 
-            analyst_agent_executor = SplunkAnalystAgentExecutor(
+            query_agent_executor = SplunkQueryAgentExecutor(
                 client=app_context['client'],
                 collection_id=app_context['collection_id'],
             )
 
             request_handler = DefaultRequestHandler(
-                agent_executor=analyst_agent_executor,
+                agent_executor=query_agent_executor,
                 task_store=InMemoryTaskStore(),
             )
 
@@ -104,7 +104,7 @@ def main(
             uvicorn_server = uvicorn.Server(config)
 
             print(
-                f'Starting Analyst Agent at http://{host}:{port} with log-level {log_level}...'
+                f'Starting Query Agent at http://{host}:{port} with log-level {log_level}...'
             )
             try:
                 await uvicorn_server.serve()

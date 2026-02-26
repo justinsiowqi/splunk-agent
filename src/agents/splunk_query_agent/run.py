@@ -2,16 +2,16 @@ from h2ogpte import H2OGPTE
 from src.core.config import get_agent_config
 from src.core.prompt_loader import load_prompt
 
-explorer_config = get_agent_config("explorer")
-prompt = load_prompt("explorer")
+query_config = get_agent_config("query")
+prompt = load_prompt("query")
 
 
-def query_splunk_agent(
+def run_splunk_agent(
     client: H2OGPTE,
     collection_id: str,
     user_prompt: str,
 ) -> str:
-    """Create a chat session and query the Splunk agent.
+    """Create a chat session and run the Splunk agent.
 
     Args:
         client: An authenticated H2OGPTE client.
@@ -29,12 +29,12 @@ def query_splunk_agent(
         reply = session.query(
             message=user_prompt,
             system_prompt=prompt,
-            llm=explorer_config["llm"],
+            llm=query_config["llm"],
             llm_args=dict(
-                temperature=explorer_config["temperature"],
+                temperature=query_config["temperature"],
                 use_agent=True,
-                agent_type=explorer_config["agent_type"],
-                agent_tools=explorer_config["agent_tools"],
+                agent_type=query_config["agent_type"],
+                agent_tools=query_config["agent_tools"],
             ),
         )
 
