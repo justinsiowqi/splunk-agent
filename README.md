@@ -12,7 +12,7 @@ YOUR MACHINE
 │       │                                                  │
 │       ▼                                                  │
 │  Routing Agent (host_agent/)                             │
-│       │ H2OGPTE LLM decides which agent to call         │
+│       │ H2OGPTE LLM decides which agent to call          │
 │       ├──────────────────────────┐                       │
 │       │ A2A                      │ A2A                   │
 │       ▼                          ▼                       │
@@ -73,8 +73,8 @@ Edit `.env` with your credentials:
 | `SPLUNK_HEC_TOKEN` | HEC token from Splunk app |
 | `SPLUNK_MCP_URL` | ngrok public URL pointing to Splunk MCP (port 8089) |
 | `SPLUNK_MCP_TOKEN` | Bearer token from Splunk MCP Server app |
-| `SPLUNK_EXPLORER_AGENT_URL` | Explorer Agent URL (default: `http://localhost:8080`) |
-| `SPLUNK_ANALYST_AGENT_URL` | Analyst Agent URL (default: `http://localhost:8082`) |
+| `SPLUNK_INVENTORY_AGENT_URL` | Explorer Agent URL (default: `http://localhost:8080`) |
+| `SPLUNK_QUERY_AGENT_URL` | Analyst Agent URL (default: `http://localhost:8082`) |
 
 ### 3. Start Splunk
 
@@ -96,10 +96,10 @@ Open three terminals:
 
 ```bash
 # Terminal 1 — Explorer Agent (port 8080)
-uv run python -m src.agents.splunk_explorer_agent
+uv run python -m src.agents.splunk_inventory_agent
 
 # Terminal 2 — Analyst Agent (port 8082)
-uv run python -m src.agents.splunk_analyst_agent
+uv run python -m src.agents.splunk_query_agent
 
 # Terminal 3 — Routing Agent with Gradio UI (port 8083)
 uv run python -m src.agents.host_agent
@@ -113,27 +113,25 @@ Open http://localhost:8083 in your browser.
 splunk-agent/
 ├── src/
 │   ├── agents/
-│   │   ├── splunk_explorer_agent/     # Explorer Agent (environment discovery)
+│   │   ├── splunk_inventory_agent/    # Inventory Agent
 │   │   │   ├── __main__.py            # A2A server entry point
-│   │   │   ├── explorer_agent.py      # Agent Card definition
-│   │   │   ├── explorer_executor.py   # A2A Agent Executor
-│   │   │   ├── client.py              # H2OGPTE client initialization
-│   │   │   ├── setup.py               # Collection, ingestion, and tool registration
-│   │   │   └── query.py               # Chat session and LLM querying
-│   │   ├── splunk_analyst_agent/      # Analyst Agent (query execution)
+│   │   │   ├── inventory_agent.py     # Inventory agent card definition
+│   │   │   ├── inventory_executor.py  # A2A Inventory Agent Executor
+│   │   │   └── run.py                 # Chat session and LLM querying
+│   │   ├── splunk_query_agent/        # Analyst Agent (query execution)
 │   │   │   ├── __main__.py            # A2A server entry point
-│   │   │   ├── analyst_agent.py       # Agent Card definition
-│   │   │   ├── analyst_executor.py    # A2A Agent Executor
-│   │   │   ├── client.py              # H2OGPTE client initialization
-│   │   │   ├── setup.py               # Collection, ingestion, and tool registration
-│   │   │   └── query.py               # Chat session and LLM querying
+│   │   │   ├── query_agent.py         # Query agent card definition
+│   │   │   ├── query_executor.py      # A2A Query Agent Executor
+│   │   │   └── run.py                 # Chat session and LLM querying
 │   │   └── host_agent/                # Routing Agent (orchestrator + Gradio UI)
 │   │       ├── __main__.py            # Gradio UI entry point
 │   │       ├── routing_agent.py       # H2OGPTE-powered routing logic
 │   │       └── remote_agent_connection.py # A2A client connections
 │   ├── core/
+│   │   ├── client.py                  # H2OGPTE client initialization
 │   │   ├── config.py                  # YAML config loader
-│   │   └── prompt_loader.py           # System prompt loader
+│   │   ├── prompt_loader.py           # System prompt loader
+│   │   └── setup.py                   # Collection, ingestion, and tool registration
 │   └── prompts/
 │       ├── host_sys.md                # Routing agent system prompt
 │       ├── explorer_sys.md            # Explorer agent system prompt
