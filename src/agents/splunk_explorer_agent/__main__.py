@@ -12,10 +12,12 @@ import uvicorn
 from a2a.server.apps import A2AStarletteApplication
 from a2a.server.request_handlers import DefaultRequestHandler
 from a2a.server.tasks import InMemoryTaskStore
-from .analyst_executor import SplunkAnalystAgentExecutor
-from .analyst_agent import build_agent_card
-from .client import create_client
-from .setup import (
+
+from .explorer_executor import SplunkExplorerAgentExecutor
+from .explorer_agent import build_agent_card
+
+from src.core.client import create_client
+from src.core.setup import (
     create_collection,
     upload_and_ingest_mcp_config,
     register_mcp_tool,
@@ -29,7 +31,7 @@ load_dotenv(override=True)
 app_context: dict[str, Any] = {}
 
 DEFAULT_HOST = '0.0.0.0'
-DEFAULT_PORT = 8082
+DEFAULT_PORT = 8080
 DEFAULT_LOG_LEVEL = 'info'
 
 
@@ -64,7 +66,7 @@ def main(
     port: int = DEFAULT_PORT,
     log_level: str = DEFAULT_LOG_LEVEL,
 ):
-    """Start the Splunk Analyst Agent A2A server."""
+    """Start the Splunk Explorer Agent A2A server."""
 
     async def run_server_async():
         async with app_lifespan(app_context):
@@ -74,7 +76,7 @@ def main(
                     file=sys.stderr,
                 )
 
-            analyst_agent_executor = SplunkAnalystAgentExecutor(
+            analyst_agent_executor = SplunkExplorerAgentExecutor(
                 client=app_context['client'],
                 collection_id=app_context['collection_id'],
             )

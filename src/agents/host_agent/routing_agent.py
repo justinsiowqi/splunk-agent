@@ -23,32 +23,15 @@ from .remote_agent_connection import (
     RemoteAgentConnections,
     TaskUpdateCallback,
 )
-from splunk_explorer_agent.client import create_client
+from src.core.client import create_client
+from src.core.config import get_agent_config
+from src.core.prompt_loader import load_prompt
 
 
 load_dotenv()
 
-DEFAULT_LLM = "openai/gpt-oss-120b"
-
-ROUTING_SYSTEM_PROMPT = """You are a routing delegator. You decide which agent handles the user's request.
-
-Available agents:
-{agents}
-
-Currently active agent: {active_agent}
-
-ROUTING GUIDELINES:
-- Use the Explorer Agent for questions about what data exists: listing indexes, checking metadata (hosts, sources, sourcetypes), getting Splunk instance info, or inspecting KV Store collections.
-- Use the Analyst Agent for questions that require running SPL queries, retrieving search results, accessing knowledge objects (saved searches, alerts, macros), or getting detailed index configuration.
-- If the user's intent is ambiguous, prefer the Explorer Agent first for discovery, then the Analyst Agent for deeper analysis.
-
-You MUST respond with ONLY a JSON object in one of these exact formats:
-
-To delegate: {{"action": "delegate", "agent_name": "<exact name from list above>", "task": "<what to ask the agent>"}}
-To respond directly: {{"action": "respond", "message": "<your message>"}}
-
-ALWAYS delegate to an agent when one is available. Do NOT try to answer questions yourself.
-"""
+host_config = get_agent_config("host")
+prompt = load_prompt("host")
 
 
 def create_send_message_payload(
@@ -168,7 +151,7 @@ class RoutingAgent:
             The response text from the remote agent, or a direct response.
         """
         # Build the system prompt with current agent roster and active agent
-        system_prompt = ROUTING_SYSTEM_PROMPT.format(
+        system_prompt = prompt.format(
             agents=self.agents,
             active_agent=self.active_agent or 'None',
         )
@@ -179,10 +162,10 @@ class RoutingAgent:
                 reply = session.query(
                     message=user_message,
                     system_prompt=system_prompt,
-                    llm=DEFAULT_LLM,
+                    llm=host_config["llm"],
                     llm_args=dict(
                         response_format='json_object',
-                        temperature=0,
+                        temperature=host_config["temperature"],
                     ),
                 )
             return reply.content

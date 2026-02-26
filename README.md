@@ -86,17 +86,17 @@ Copy the public URL into `SPLUNK_MCP_URL` in your `.env` file.
 
 ### 4. Run the agents
 
-Open three terminals from the `splunk-agent/` directory:
+Open three terminals:
 
 ```bash
 # Terminal 1 — Explorer Agent (port 8080)
-PYTHONPATH=. python -m splunk_explorer_agent
+uv run python -m src.agents.splunk_explorer_agent
 
 # Terminal 2 — Analyst Agent (port 8082)
-PYTHONPATH=. python -m splunk_analyst_agent
+uv run python -m src.agents.splunk_analyst_agent
 
 # Terminal 3 — Routing Agent with Gradio UI (port 8083)
-PYTHONPATH=. python -m host_agent
+uv run python -m src.agents.host_agent
 ```
 
 Open http://localhost:8083 in your browser.
@@ -105,28 +105,39 @@ Open http://localhost:8083 in your browser.
 
 ```
 splunk-agent/
-├── splunk_explorer_agent/         # Explorer Agent (environment discovery)
-│   ├── __main__.py                # A2A server entry point
-│   ├── explorer_agent.py          # Agent Card definition
-│   ├── explorer_executor.py       # A2A Agent Executor
-│   ├── client.py                  # H2OGPTE client initialization
-│   ├── setup.py                   # Collection, ingestion, and tool registration
-│   └── query.py                   # Chat session and LLM querying
-├── splunk_analyst_agent/          # Analyst Agent (query execution)
-│   ├── __main__.py                # A2A server entry point
-│   ├── analyst_agent.py           # Agent Card definition
-│   ├── analyst_executor.py        # A2A Agent Executor
-│   ├── client.py                  # H2OGPTE client initialization
-│   ├── setup.py                   # Collection, ingestion, and tool registration
-│   └── query.py                   # Chat session and LLM querying
-├── host_agent/                    # Routing Agent (orchestrator + Gradio UI)
-│   ├── __main__.py                # Gradio UI entry point
-│   ├── routing_agent.py           # H2OGPTE-powered routing logic
-│   └── remote_agent_connection.py # A2A client connections
-├── mcp_config.json                # Splunk MCP server configuration
+├── src/
+│   ├── agents/
+│   │   ├── splunk_explorer_agent/     # Explorer Agent (environment discovery)
+│   │   │   ├── __main__.py            # A2A server entry point
+│   │   │   ├── explorer_agent.py      # Agent Card definition
+│   │   │   ├── explorer_executor.py   # A2A Agent Executor
+│   │   │   ├── client.py              # H2OGPTE client initialization
+│   │   │   ├── setup.py               # Collection, ingestion, and tool registration
+│   │   │   └── query.py               # Chat session and LLM querying
+│   │   ├── splunk_analyst_agent/      # Analyst Agent (query execution)
+│   │   │   ├── __main__.py            # A2A server entry point
+│   │   │   ├── analyst_agent.py       # Agent Card definition
+│   │   │   ├── analyst_executor.py    # A2A Agent Executor
+│   │   │   ├── client.py              # H2OGPTE client initialization
+│   │   │   ├── setup.py               # Collection, ingestion, and tool registration
+│   │   │   └── query.py               # Chat session and LLM querying
+│   │   └── host_agent/                # Routing Agent (orchestrator + Gradio UI)
+│   │       ├── __main__.py            # Gradio UI entry point
+│   │       ├── routing_agent.py       # H2OGPTE-powered routing logic
+│   │       └── remote_agent_connection.py # A2A client connections
+│   ├── core/
+│   │   ├── config.py                  # YAML config loader
+│   │   └── prompt_loader.py           # System prompt loader
+│   └── prompts/
+│       ├── host_sys.md                # Routing agent system prompt
+│       ├── explorer_sys.md            # Explorer agent system prompt
+│       └── analyst_sys.md             # Analyst agent system prompt
+├── config/
+│   └── agents.yaml                    # Agent configuration (LLM, tools, temperature)
+├── mcp_config.json                    # Splunk MCP server configuration
 ├── requirements.txt
 ├── .env.example
-├── SETUP.md                       # Splunk & ngrok setup guide
+├── SETUP.md                           # Splunk & ngrok setup guide
 └── README.md
 ```
 
