@@ -8,24 +8,21 @@ prompt = load_prompt("query")
 
 def run_splunk_agent(
     client: H2OGPTE,
-    collection_id: str,
+    chat_id: str,
     user_prompt: str,
 ) -> str:
-    """Create a chat session and run the Splunk agent.
+    """Run the Splunk agent on an existing chat session.
 
     Args:
         client: An authenticated H2OGPTE client.
-        collection_id: The collection to associate the chat session with.
+        chat_id: The persistent chat session ID.
         user_prompt: The natural language question to ask.
 
     Returns:
         The agent's response as a string.
     """
 
-    chat_session_id = client.create_chat_session(collection_id)
-    print(f"Chat session created: {chat_session_id}")
-
-    with client.connect(chat_session_id) as session:
+    with client.connect(chat_id) as session:
         reply = session.query(
             message=user_prompt,
             system_prompt=prompt,

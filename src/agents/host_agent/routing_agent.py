@@ -1,6 +1,7 @@
 import asyncio
 import json
 import os
+import re
 import uuid
 
 from typing import Any
@@ -32,6 +33,13 @@ load_dotenv()
 
 host_config = get_agent_config("host")
 prompt = load_prompt("host")
+
+_THINKING_RE = re.compile(r'<thinking>.*?</thinking>\s*', flags=re.DOTALL)
+
+
+def _strip_thinking(text: str) -> str:
+    """Remove <thinking>...</thinking> blocks from agent responses."""
+    return _THINKING_RE.sub('', text).strip()
 
 
 def create_send_message_payload(
@@ -159,15 +167,15 @@ class RoutingAgent:
         routing_schema = {
             "type": "object",
             "properties": {
+                "reasoning": {
+                    "type": "string",
+                },
                 "agent_name": {
                     "type": "string",
                     "enum": agent_names,
                 },
-                "reasoning": {
-                    "type": "string",
-                },
             },
-            "required": ["agent_name", "reasoning"]
+            "required": ["reasoning", "agent_name"]
         }
 
         # Call H2OGPTE LLM for routing decision (sync call wrapped in thread)
@@ -241,7 +249,7 @@ class RoutingAgent:
                         texts.append(part.text)
                     else:
                         texts.append(f'[{part.type} content]')
-                return '\n'.join(texts)
+                return _strip_thinking('\n'.join(texts))
         if task_result.artifacts:
             texts = []
             for artifact in task_result.artifacts:
@@ -249,7 +257,7 @@ class RoutingAgent:
                     if part.type == 'text':
                         texts.append(part.text)
             if texts:
-                return '\n'.join(texts)
+                return _strip_thinking('\n'.join(texts))
         return 'Agent completed task but returned no text content.'
 
     def _extract_message_text(self, message: Message) -> str:
@@ -261,7 +269,7 @@ class RoutingAgent:
                     texts.append(part.root.text)
                 else:
                     texts.append(f'[{part.root.kind} content]')
-            return '\n'.join(texts)
+            return _strip_thinking('\n'.join(texts))
         return 'Agent returned an empty message.'
 
     async def send_message(self, agent_name: str, task: str) -> str | None:

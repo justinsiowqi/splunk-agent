@@ -36,6 +36,13 @@ def create_collection(client: H2OGPTE, collection_name: str, collection_desc: st
     return collection_id
 
 
+def create_chat(client: H2OGPTE, collection_id: str) -> str:
+    """Create a new chat session in the specified collection."""
+    chat_session_id = client.create_chat_session(collection_id)
+    print(f"Chat session created: {chat_session_id}")
+    return chat_session_id
+
+
 def upload_and_ingest_mcp_config(client: H2OGPTE, collection_id: str) -> str:
     """Upload and ingest the MCP config file into the collection."""
     json_bytes = _load_mcp_config().encode()
