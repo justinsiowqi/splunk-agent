@@ -32,11 +32,14 @@ def run_splunk_agent(
             llm=query_config["llm"],
             llm_args=dict(
                 temperature=query_config["temperature"],
+                enable_vision="off",
                 use_agent=True,
+                agent_accuracy=query_config["agent_accuracy"],
                 agent_type=query_config["agent_type"],
                 agent_tools=query_config["agent_tools"],
             ),
             rag_config={"rag_type": "llm_only"},
+            include_chat_history="on"
         )
 
     return reply.content

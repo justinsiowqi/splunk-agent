@@ -26,11 +26,11 @@ def _load_mcp_config() -> str:
     return content.replace(_PLACEHOLDER, splunk_mcp_url)
 
 
-def create_collection(client: H2OGPTE) -> str:
+def create_collection(client: H2OGPTE, collection_name: str, collection_desc: str) -> str:
     """Create a new H2OGPTE collection for the Splunk agent."""
     collection_id = client.create_collection(
-        name="Splunk Inventory Agent",
-        description="Splunk Inventory Agent with Splunk Remote MCP Tool Capabilities",
+        name=collection_name,
+        description=collection_desc,
     )
     print(f"Collection created: {collection_id}")
     return collection_id

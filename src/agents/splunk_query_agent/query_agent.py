@@ -14,7 +14,7 @@ def build_agent_card(host: str, port: int) -> AgentCard:
             AgentSkill(
                 id="splunk_query",
                 name="Splunk SPL Search & Investigation",
-                description="Translate questions into SPL, execute search queries against Splunk indexes, retrieve saved searches/alerts/macros, and synthesize findings.",
+                description="SPL EXECUTION & INVESTIGATION — Writes and runs SPL queries, searches/filters event logs, counts events, and retrieves saved searches/alerts/macros. Answers 'what happened?' Can discover index schema when needed.",
                 tags=["SPL", "search", "query", "investigation", "alerts", "saved_searches", "macros"],
                 inputModes=["text/plain"],
                 outputModes=["text/plain"],

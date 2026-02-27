@@ -33,6 +33,8 @@ app_context: dict[str, Any] = {}
 DEFAULT_HOST = '0.0.0.0'
 DEFAULT_PORT = 8082
 DEFAULT_LOG_LEVEL = 'info'
+COLLECTION_NAME = "Splunk Query Agent"
+COLLECTION_DESC = "Collection for Splunk Query Agent with Remote MCP Tool Capabilities"
 
 
 @asynccontextmanager
@@ -42,7 +44,7 @@ async def app_lifespan(context: dict[str, Any]):
 
     try:
         client = create_client()
-        collection_id = create_collection(client)
+        collection_id = create_collection(client, COLLECTION_NAME, COLLECTION_DESC)
         upload_and_ingest_mcp_config(client, collection_id)
         register_mcp_tool(client)
         setup_agent_keys(client)

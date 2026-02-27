@@ -31,9 +31,9 @@ YOUR MACHINE
    ngrok URL  ──►  H2OGPTE (cloud)  ──►  MCP Tool Runner
 ```
 
-**Explorer Agent** — Observes the Splunk environment without running heavy queries. Tools: `splunk_get_indexes`, `splunk_get_metadata`, `splunk_get_info`, `splunk_get_kv_store_collections`
+**Inventory Agent** — Describe the Splunk environment without executing SPL queries. Tools: `splunk_get_indexes`, `splunk_get_metadata`, `splunk_get_info`, `splunk_get_kv_store_collections`
 
-**Analyst Agent** — Writes and executes SPL queries. Tools: `splunk_run_query`, `splunk_get_knowledge_objects`, `splunk_get_index_info`
+**Query Agent** — Writes and executes SPL queries. Tools: `splunk_run_query`, `splunk_get_knowledge_objects`, `splunk_get_index_info`
 
 ## Prerequisites
 
@@ -95,10 +95,10 @@ Copy the public URL into `SPLUNK_MCP_URL` in your `.env` file.
 Open three terminals:
 
 ```bash
-# Terminal 1 — Explorer Agent (port 8080)
+# Terminal 1 — Inventory Agent (port 8080)
 uv run python -m src.agents.splunk_inventory_agent
 
-# Terminal 2 — Analyst Agent (port 8082)
+# Terminal 2 — Query Agent (port 8082)
 uv run python -m src.agents.splunk_query_agent
 
 # Terminal 3 — Routing Agent with Gradio UI (port 8083)
@@ -118,7 +118,7 @@ splunk-agent/
 │   │   │   ├── inventory_agent.py     # Inventory agent card definition
 │   │   │   ├── inventory_executor.py  # A2A Inventory Agent Executor
 │   │   │   └── run.py                 # Chat session and LLM querying
-│   │   ├── splunk_query_agent/        # Analyst Agent (query execution)
+│   │   ├── splunk_query_agent/        # Query Agent 
 │   │   │   ├── __main__.py            # A2A server entry point
 │   │   │   ├── query_agent.py         # Query agent card definition
 │   │   │   ├── query_executor.py      # A2A Query Agent Executor
@@ -134,8 +134,8 @@ splunk-agent/
 │   │   └── setup.py                   # Collection, ingestion, and tool registration
 │   └── prompts/
 │       ├── host_sys.md                # Routing agent system prompt
-│       ├── explorer_sys.md            # Explorer agent system prompt
-│       └── analyst_sys.md             # Analyst agent system prompt
+│       ├── inventory_sys.md           # Inventory agent system prompt
+│       └── query_sys.md               # Query agent system prompt
 ├── config/
 │   └── agents.yaml                    # Agent configuration (LLM, tools, temperature)
 ├── mcp_config.json                    # Splunk MCP server configuration
