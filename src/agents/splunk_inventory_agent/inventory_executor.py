@@ -7,19 +7,22 @@ from a2a.types import UnsupportedOperationError
 from .run import run_splunk_agent
 
 class SplunkInventoryAgentExecutor(AgentExecutor):
-    def __init__(self, client, collection_id: str, chat_id: str):
+    def __init__(self, client, collection_id: str):
         self.client = client
         self.collection_id = collection_id
-        self.chat_id = chat_id
 
     async def execute(self, context: RequestContext, event_queue: EventQueue) -> None:
         try:
             user_message = context.get_user_input()
             print(f"[execute] user_message={user_message!r}")
+            chat_id = await asyncio.to_thread(
+                self.client.create_chat_session, self.collection_id
+            )
+            print(f"[execute] created chat session: {chat_id}")
             response = await asyncio.to_thread(
                 run_splunk_agent,
                 client=self.client,
-                chat_id=self.chat_id,
+                chat_id=chat_id,
                 user_prompt=user_message,
             )
             print(f"[execute] response={response!r}")

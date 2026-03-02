@@ -19,7 +19,6 @@ from .inventory_agent import build_agent_card
 from src.core.client import create_client
 from src.core.setup import (
     create_collection,
-    create_chat,
     upload_and_ingest_mcp_config,
     register_mcp_tool,
     setup_agent_keys,
@@ -46,14 +45,12 @@ async def app_lifespan(context: dict[str, Any]):
     try:
         client = create_client()
         collection_id = create_collection(client, COLLECTION_NAME, COLLECTION_DESC)
-        chat_id = create_chat(client, collection_id)
         upload_and_ingest_mcp_config(client, collection_id)
         register_mcp_tool(client)
         setup_agent_keys(client)
 
         context['client'] = client
         context['collection_id'] = collection_id
-        context['chat_id'] = chat_id
 
         print('Lifespan: H2OGPTE client and MCP tools initialized successfully.')
         yield  # Application runs here
@@ -84,7 +81,6 @@ def main(
             inventory_agent_executor = SplunkInventoryAgentExecutor(
                 client=app_context['client'],
                 collection_id=app_context['collection_id'],
-                chat_id=app_context['chat_id'],
             )
 
             request_handler = DefaultRequestHandler(

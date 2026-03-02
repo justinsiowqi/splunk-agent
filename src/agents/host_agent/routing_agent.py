@@ -84,6 +84,8 @@ class RoutingAgent:
         self.chat_session_id: str | None = None
         # Instance-level state (replaces ADK context.state)
         self.session_id: str = str(uuid.uuid4())
+        # Conversation memory: tracks each turn for cross-agent continuity
+        self.turn_history: list[dict[str, str]] = []
 
     async def _async_init_components(
         self, remote_agent_addresses: list[str]
@@ -148,6 +150,40 @@ class RoutingAgent:
             )
         return remote_agent_info
 
+    def _build_routing_context(self) -> str:
+        """Build concise routing context from tracked conversation turns.
+
+        Uses turn_history (which includes agent attribution) rather than raw
+        Gradio history to avoid leaking full response text into the routing
+        prompt — that confuses the classifier LLM.
+        """
+        if not self.turn_history:
+            return 'No prior conversation.'
+        lines = []
+        for turn in self.turn_history[-5:]:
+            lines.append(
+                f'- User: "{turn["user"][:150]}" -> Routed to: {turn["agent"]}'
+            )
+        return '\n'.join(lines)
+
+    def _build_enriched_message(self, user_message: str) -> str:
+        """Prepend prior conversation context to the message sent to sub-agents."""
+        if not self.turn_history:
+            return user_message
+        context_lines = []
+        for turn in self.turn_history[-3:]:
+            context_lines.append(
+                f'[{turn["agent"]}] User: {turn["user"]}\n'
+                f'[{turn["agent"]}] Response: {turn["response"]}'
+            )
+        context = '\n\n'.join(context_lines)
+        return (
+            f'### Prior Conversation Context ###\n'
+            f'{context}\n\n'
+            f'### Current Question ###\n'
+            f'{user_message}'
+        )
+
     async def route(self, user_message: str) -> str:
         """Route a user message to the appropriate remote agent via H2OGPTE LLM.
 
@@ -157,9 +193,10 @@ class RoutingAgent:
         Returns:
             The response text from the remote agent, or a direct response.
         """
-        # Build the system prompt with current agent roster 
+        # Build the system prompt with current agent roster and conversation history
         system_prompt = prompt.format(
-            agents=self.agents
+            agents=self.agents,
+            conversation_history=self._build_routing_context(),
         )
 
         # Define the strict schema for the router
@@ -211,12 +248,18 @@ class RoutingAgent:
         if not agent_name or agent_name == 'none':
             return 'Hello! I can help you explore your Splunk environment or search event data. What would you like to do?'
 
-        # Delegate to the named agent — always pass the original user message
+        # Delegate to the named agent with enriched context
+        enriched_message = self._build_enriched_message(user_message)
         if agent_name in self.remote_agent_connections:
             try:
-                result = await self.send_message(agent_name, user_message)
+                result = await self.send_message(agent_name, enriched_message)
                 if result is None:
                     return f"Error: No response received from agent '{agent_name}'."
+                self.turn_history.append({
+                    'user': user_message,
+                    'agent': agent_name,
+                    'response': result[:500],
+                })
                 return result
             except ValueError as e:
                 return f'Error: {e}'
@@ -230,10 +273,16 @@ class RoutingAgent:
             return 'Error: No remote agents available.'
         agent_name = next(iter(self.remote_agent_connections))
         print(f'Fallback: delegating to {agent_name}')
+        enriched_message = self._build_enriched_message(user_message)
         try:
-            result = await self.send_message(agent_name, user_message)
+            result = await self.send_message(agent_name, enriched_message)
             if result is None:
                 return f"Error: No response received from agent '{agent_name}'."
+            self.turn_history.append({
+                'user': user_message,
+                'agent': agent_name,
+                'response': result[:500],
+            })
             return result
         except ValueError as e:
             return f'Error: {e}'
