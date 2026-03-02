@@ -15,6 +15,7 @@ from a2a.server.tasks import InMemoryTaskStore
 
 from .query_executor import SplunkQueryAgentExecutor
 from .query_agent import build_agent_card
+from .schema import get_dynamic_schema
 
 from src.core.client import create_client
 from src.core.setup import (
@@ -52,6 +53,10 @@ async def app_lifespan(context: dict[str, Any]):
         context['client'] = client
         context['collection_id'] = collection_id
 
+        print('Lifespan: Discovering Splunk schema via REST API...')
+        context['schema_context'] = get_dynamic_schema()
+        print(f'Lifespan: Schema discovered:\n{context["schema_context"]}')
+
         print('Lifespan: H2OGPTE client and MCP tools initialized successfully.')
         yield  # Application runs here
     except Exception as e:
@@ -81,6 +86,7 @@ def main(
             query_agent_executor = SplunkQueryAgentExecutor(
                 client=app_context['client'],
                 collection_id=app_context['collection_id'],
+                schema_context=app_context['schema_context'],
             )
 
             request_handler = DefaultRequestHandler(

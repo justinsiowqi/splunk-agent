@@ -41,6 +41,9 @@ For every request, follow this cycle:
 | **SPL syntax error** | Read the error message, fix the syntax, and re-run. Common causes: unescaped special characters, missing pipes, incorrect function arguments. |
 | **Permission / access error** | Report the error to the user and suggest they verify their Splunk role has access to the requested index. |
 
+## Schema
+{schema_context}
+
 ## Formatting
 - Wrap all SPL queries in fenced code blocks.
 - Present tabular results in Markdown tables.

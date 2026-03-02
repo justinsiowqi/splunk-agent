@@ -7,9 +7,10 @@ from a2a.types import UnsupportedOperationError
 from .run import run_splunk_agent
 
 class SplunkQueryAgentExecutor(AgentExecutor):
-    def __init__(self, client, collection_id: str):
+    def __init__(self, client, collection_id: str, schema_context: str):
         self.client = client
         self.collection_id = collection_id
+        self.schema_context = schema_context
 
     async def execute(self, context: RequestContext, event_queue: EventQueue) -> None:
         try:
@@ -23,6 +24,7 @@ class SplunkQueryAgentExecutor(AgentExecutor):
                 run_splunk_agent,
                 client=self.client,
                 chat_id=chat_id,
+                schema_context=self.schema_context,
                 user_prompt=user_message,
             )
             print(f"[execute] response={response!r}")

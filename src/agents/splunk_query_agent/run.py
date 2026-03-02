@@ -9,6 +9,7 @@ prompt = load_prompt("query")
 def run_splunk_agent(
     client: H2OGPTE,
     chat_id: str,
+    schema_context: str,
     user_prompt: str,
 ) -> str:
     """Run the Splunk agent on an existing chat session.
@@ -16,16 +17,20 @@ def run_splunk_agent(
     Args:
         client: An authenticated H2OGPTE client.
         chat_id: The persistent chat session ID.
+        schema_context: Pre-built markdown schema of Splunk indexes/fields.
         user_prompt: The natural language question to ask.
 
     Returns:
         The agent's response as a string.
     """
+    system_prompt = prompt.format(
+        schema_context=schema_context
+    )
 
     with client.connect(chat_id) as session:
         reply = session.query(
             message=user_prompt,
-            system_prompt=prompt,
+            system_prompt=system_prompt,
             llm=query_config["llm"],
             llm_args=dict(
                 temperature=query_config["temperature"],
