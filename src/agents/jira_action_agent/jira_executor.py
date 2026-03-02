@@ -5,7 +5,7 @@ from a2a.server.events import EventQueue
 from a2a.types import UnsupportedOperationError
 from a2a.utils import new_agent_text_message
 
-from .query import query_jira_action_agent
+from .run import query_jira_action_agent
 
 
 class JiraActionAgentExecutor(AgentExecutor):

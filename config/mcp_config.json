@@ -16,6 +16,23 @@
       "tool_usage_mode": [
         "runner"
       ]
+    },
+    "jira": {
+      "command": "npx",
+      "args": [
+        "mcp-remote",
+        "YOUR_JIRA_MCP_URL",
+        "--header",
+        "Authorization: Bearer os.environ/JIRA_MCP_TOKEN"
+      ],
+      "env": {
+        "JIRA_MCP_TOKEN": "os.environ/JIRA_MCP_TOKEN",
+        "NODE_TLS_REJECT_UNAUTHORIZED": "0"
+      },
+      "description": "The Jira MCP Tool is a programmatic interface that allows AI agents to create, update, search, and manage Jira issues, projects, and workflows.",
+      "tool_usage_mode": [
+        "runner"
+      ]
     }
   }
 }

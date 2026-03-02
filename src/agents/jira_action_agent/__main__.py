@@ -15,14 +15,14 @@ from a2a.server.request_handlers import DefaultRequestHandler
 from a2a.server.tasks import InMemoryTaskStore
 
 from src.core.client import create_client
-from src.core.setup_jira import (
+from src.core.setup import (
     create_collection,
     register_mcp_tool,
     setup_agent_keys,
     upload_and_ingest_mcp_config,
 )
-from .jira_action_agent import build_agent_card
-from .jira_action_executor import JiraActionAgentExecutor
+from .jira_agent import build_agent_card
+from .jira_executor import JiraActionAgentExecutor
 
 
 load_dotenv(override=True)
@@ -32,6 +32,8 @@ app_context: dict[str, Any] = {}
 DEFAULT_HOST = "0.0.0.0"
 DEFAULT_PORT = 8084
 DEFAULT_LOG_LEVEL = "info"
+COLLECTION_NAME = "Jira Action Agent"
+COLLECTION_DESC = "Jira Action Agent with Jira Remote MCP Tool Capabilities"
 
 
 @asynccontextmanager
@@ -41,7 +43,7 @@ async def app_lifespan(context: dict[str, Any]):
 
     try:
         client = create_client()
-        collection_id = create_collection(client)
+        collection_id = create_collection(client, COLLECTION_NAME, COLLECTION_DESC)
         upload_and_ingest_mcp_config(client, collection_id)
         register_mcp_tool(client)
         setup_agent_keys(client)

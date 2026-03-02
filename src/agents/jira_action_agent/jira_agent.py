@@ -3,7 +3,7 @@ from a2a.types import AgentCapabilities, AgentCard, AgentSkill
 
 def build_agent_card(host: str, port: int) -> AgentCard:
     return AgentCard(
-        name="H2O Jira Action Agent",
+        name="Jira Action Agent",
         description=(
             "Creates and updates Jira issues based on validated findings from "
             "discovery and analyst outputs."
