@@ -1,18 +1,20 @@
 agents:
   host:
-    llm: "openai/gpt-oss-120b"
+    llm: "openai/gpt-oss-20b"
     temperature: 0.0
 
-  explorer:
+  inventory:
     llm: "openai/gpt-oss-120b"
     temperature: 0.0
+    agent_accuracy: "basic"
     agent_type: "mcp_tool_runner"
     agent_tools:
       - "splunk"
 
-  analyst:
+  query:
     llm: "openai/gpt-oss-120b"
     temperature: 0.4
+    agent_accuracy: "standard"
     agent_type: "mcp_tool_runner"
     agent_tools:
       - "splunk"

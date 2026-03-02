@@ -26,8 +26,8 @@ async def main():
         print(
             '\nERROR: No remote agents were discovered.\n'
             'Make sure the Splunk agents are running first:\n'
-            '  python -m splunk_explorer_agent\n'
-            '  python -m splunk_analyst_agent\n'
+            '  python -m splunk_inventory_agent\n'
+            '  python -m splunk_query_agent\n'
             'Then restart this host agent.\n'
         )
         return

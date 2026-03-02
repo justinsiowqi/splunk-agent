@@ -15,7 +15,7 @@ def get_agent_config(agent_name: str) -> dict:
 
     Args:
         agent_name: Key under ``agents`` in agents.yaml
-                    (e.g. "host", "explorer", "analyst").
+                    (e.g. "host", "inventory", "query").
 
     Returns:
         A dict with the agent's configuration (e.g. llm, agent_type, agent_tools).

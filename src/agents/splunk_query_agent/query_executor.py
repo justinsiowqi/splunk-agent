@@ -4,21 +4,27 @@ from a2a.server.agent_execution import AgentExecutor, RequestContext
 from a2a.server.events import EventQueue
 from a2a.utils import new_agent_text_message
 from a2a.types import UnsupportedOperationError
-from .query import query_splunk_agent
+from .run import run_splunk_agent
 
-class SplunkExplorerAgentExecutor(AgentExecutor):
-    def __init__(self, client, collection_id: str):
+class SplunkQueryAgentExecutor(AgentExecutor):
+    def __init__(self, client, collection_id: str, schema_context: str):
         self.client = client
         self.collection_id = collection_id
+        self.schema_context = schema_context
 
     async def execute(self, context: RequestContext, event_queue: EventQueue) -> None:
         try:
             user_message = context.get_user_input()
             print(f"[execute] user_message={user_message!r}")
+            chat_id = await asyncio.to_thread(
+                self.client.create_chat_session, self.collection_id
+            )
+            print(f"[execute] created chat session: {chat_id}")
             response = await asyncio.to_thread(
-                query_splunk_agent,
+                run_splunk_agent,
                 client=self.client,
-                collection_id=self.collection_id,
+                chat_id=chat_id,
+                schema_context=self.schema_context,
                 user_prompt=user_message,
             )
             print(f"[execute] response={response!r}")

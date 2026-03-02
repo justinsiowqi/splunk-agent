@@ -13,8 +13,8 @@ from a2a.server.apps import A2AStarletteApplication
 from a2a.server.request_handlers import DefaultRequestHandler
 from a2a.server.tasks import InMemoryTaskStore
 
-from .analyst_executor import SplunkAnalystAgentExecutor
-from .analyst_agent import build_agent_card
+from .inventory_executor import SplunkInventoryAgentExecutor
+from .inventory_agent import build_agent_card
 
 from src.core.client import create_client
 from src.core.setup import (
@@ -31,8 +31,10 @@ load_dotenv(override=True)
 app_context: dict[str, Any] = {}
 
 DEFAULT_HOST = '0.0.0.0'
-DEFAULT_PORT = 8082
+DEFAULT_PORT = 8080
 DEFAULT_LOG_LEVEL = 'info'
+COLLECTION_NAME = "Splunk Inventory Agent"
+COLLECTION_DESC = "Collection for Splunk Inventory Agent with Remote MCP Tool Capabilities"
 
 
 @asynccontextmanager
@@ -42,7 +44,7 @@ async def app_lifespan(context: dict[str, Any]):
 
     try:
         client = create_client()
-        collection_id = create_collection(client)
+        collection_id = create_collection(client, COLLECTION_NAME, COLLECTION_DESC)
         upload_and_ingest_mcp_config(client, collection_id)
         register_mcp_tool(client)
         setup_agent_keys(client)
@@ -66,7 +68,7 @@ def main(
     port: int = DEFAULT_PORT,
     log_level: str = DEFAULT_LOG_LEVEL,
 ):
-    """Start the Splunk Analyst Agent A2A server."""
+    """Start the Splunk Inventory Agent A2A server."""
 
     async def run_server_async():
         async with app_lifespan(app_context):
@@ -76,13 +78,13 @@ def main(
                     file=sys.stderr,
                 )
 
-            analyst_agent_executor = SplunkAnalystAgentExecutor(
+            inventory_agent_executor = SplunkInventoryAgentExecutor(
                 client=app_context['client'],
                 collection_id=app_context['collection_id'],
             )
 
             request_handler = DefaultRequestHandler(
-                agent_executor=analyst_agent_executor,
+                agent_executor=inventory_agent_executor,
                 task_store=InMemoryTaskStore(),
             )
 
@@ -104,7 +106,7 @@ def main(
             uvicorn_server = uvicorn.Server(config)
 
             print(
-                f'Starting Analyst Agent at http://{host}:{port} with log-level {log_level}...'
+                f'Starting Inventory Agent at http://{host}:{port} with log-level {log_level}...'
             )
             try:
                 await uvicorn_server.serve()

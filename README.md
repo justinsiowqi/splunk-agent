@@ -37,9 +37,9 @@ YOUR MACHINE
    ngrok URL  ──►  H2OGPTE (cloud)  ──►  MCP Tool Runner
 ```
 
-**Explorer Agent** — Observes the Splunk environment without running heavy queries. Tools: `splunk_get_indexes`, `splunk_get_metadata`, `splunk_get_info`, `splunk_get_kv_store_collections`
+**Inventory Agent** — Describe the Splunk environment without executing SPL queries. Tools: `splunk_get_indexes`, `splunk_get_metadata`, `splunk_get_info`, `splunk_get_kv_store_collections`
 
-**Analyst Agent** — Writes and executes SPL queries. Tools: `splunk_run_query`, `splunk_get_knowledge_objects`, `splunk_get_index_info`
+**Query Agent** — Writes and executes SPL queries. Tools: `splunk_run_query`, `splunk_get_knowledge_objects`, `splunk_get_index_info`
 
 **Jira Action Agent** — Creates and updates Jira tickets using validated findings from discovery and analysis.
 
@@ -81,13 +81,17 @@ Edit `.env` with your credentials:
 | `SPLUNK_HEC_TOKEN` | HEC token from Splunk app |
 | `SPLUNK_MCP_URL` | ngrok public URL pointing to Splunk MCP (port 8089) |
 | `SPLUNK_MCP_TOKEN` | Bearer token from Splunk MCP Server app |
-| `SPLUNK_EXPLORER_AGENT_URL` | Explorer Agent URL (default: `http://localhost:8080`) |
-| `SPLUNK_ANALYST_AGENT_URL` | Analyst Agent URL (default: `http://localhost:8082`) |
-| `JIRA_MCP_URL` | Jira MCP endpoint URL |
-| `JIRA_MCP_TOKEN` | Bearer token for Jira MCP |
+| `SPLUNK_INVENTORY_AGENT_URL` | Inventory Agent URL (default: `http://localhost:8080`) |
+| `SPLUNK_QUERY_AGENT_URL` | Query Agent URL (default: `http://localhost:8082`) |
 | `JIRA_ACTION_AGENT_URL` | Jira Action Agent URL (default: `http://localhost:8084`) |
 
-### 3. Start ngrok
+### 3. Start Splunk
+
+```bash
+/Applications/Splunk/bin/splunk start
+```
+
+### 4. Start ngrok
 
 ```bash
 ngrok http https://localhost:8089
@@ -95,16 +99,16 @@ ngrok http https://localhost:8089
 
 Copy the public URL into `SPLUNK_MCP_URL` in your `.env` file.
 
-### 4. Run the agents
+### 5. Run the agents
 
 Open four terminals:
 
 ```bash
-# Terminal 1 — Explorer Agent (port 8080)
-uv run python -m src.agents.splunk_explorer_agent
+# Terminal 1 — Inventory Agent (port 8080)
+uv run python -m src.agents.splunk_inventory_agent
 
-# Terminal 2 — Analyst Agent (port 8082)
-uv run python -m src.agents.splunk_analyst_agent
+# Terminal 2 — Query Agent (port 8082)
+uv run python -m src.agents.splunk_query_agent
 
 # Terminal 3 — Jira Action Agent (port 8084)
 uv run python -m src.agents.jira_action_agent
@@ -121,20 +125,16 @@ Open http://localhost:8083 in your browser.
 splunk-agent/
 ├── src/
 │   ├── agents/
-│   │   ├── splunk_explorer_agent/     # Explorer Agent (environment discovery)
+│   │   ├── splunk_inventory_agent/    # Inventory Agent
 │   │   │   ├── __main__.py            # A2A server entry point
-│   │   │   ├── explorer_agent.py      # Agent Card definition
-│   │   │   ├── explorer_executor.py   # A2A Agent Executor
-│   │   │   ├── client.py              # H2OGPTE client initialization
-│   │   │   ├── setup.py               # Collection, ingestion, and tool registration
-│   │   │   └── query.py               # Chat session and LLM querying
-│   │   ├── splunk_analyst_agent/      # Analyst Agent (query execution)
+│   │   │   ├── inventory_agent.py     # Inventory agent card definition
+│   │   │   ├── inventory_executor.py  # A2A Inventory Agent Executor
+│   │   │   └── run.py                 # Chat session and LLM querying
+│   │   ├── splunk_query_agent/        # Query Agent 
 │   │   │   ├── __main__.py            # A2A server entry point
-│   │   │   ├── analyst_agent.py       # Agent Card definition
-│   │   │   ├── analyst_executor.py    # A2A Agent Executor
-│   │   │   ├── client.py              # H2OGPTE client initialization
-│   │   │   ├── setup.py               # Collection, ingestion, and tool registration
-│   │   │   └── query.py               # Chat session and LLM querying
+│   │   │   ├── query_agent.py         # Query agent card definition
+│   │   │   ├── query_executor.py      # A2A Query Agent Executor
+│   │   │   └── run.py                 # Chat session and LLM querying
 │   │   ├── jira_action_agent/         # Jira Action Agent (ticket actions)
 │   │   │   ├── __main__.py            # A2A server entry point
 │   │   │   ├── jira_action_agent.py   # Agent Card definition
@@ -145,8 +145,10 @@ splunk-agent/
 │   │       ├── routing_agent.py       # H2OGPTE-powered routing logic
 │   │       └── remote_agent_connection.py # A2A client connections
 │   ├── core/
+│   │   ├── client.py                  # H2OGPTE client initialization
 │   │   ├── config.py                  # YAML config loader
-│   │   └── prompt_loader.py           # System prompt loader
+│   │   ├── prompt_loader.py           # System prompt loader
+│   │   └── setup.py                   # Collection, ingestion, and tool registration
 │   └── prompts/
 │       ├── host_sys.md                # Routing agent system prompt
 │       ├── explorer_sys.md            # Explorer agent system prompt

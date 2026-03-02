@@ -1,6 +1,7 @@
 import asyncio
 import json
 import os
+import re
 import uuid
 
 from typing import Any
@@ -32,6 +33,13 @@ load_dotenv()
 
 host_config = get_agent_config("host")
 prompt = load_prompt("host")
+
+_THINKING_RE = re.compile(r'<thinking>.*?</thinking>\s*', flags=re.DOTALL)
+
+
+def _strip_thinking(text: str) -> str:
+    """Remove <thinking>...</thinking> blocks from agent responses."""
+    return _THINKING_RE.sub('', text).strip()
 
 
 def create_send_message_payload(
@@ -76,7 +84,8 @@ class RoutingAgent:
         self.chat_session_id: str | None = None
         # Instance-level state (replaces ADK context.state)
         self.session_id: str = str(uuid.uuid4())
-        self.active_agent: str | None = None
+        # Conversation memory: tracks each turn for cross-agent continuity
+        self.turn_history: list[dict[str, str]] = []
 
     async def _async_init_components(
         self, remote_agent_addresses: list[str]
@@ -141,6 +150,40 @@ class RoutingAgent:
             )
         return remote_agent_info
 
+    def _build_routing_context(self) -> str:
+        """Build concise routing context from tracked conversation turns.
+
+        Uses turn_history (which includes agent attribution) rather than raw
+        Gradio history to avoid leaking full response text into the routing
+        prompt — that confuses the classifier LLM.
+        """
+        if not self.turn_history:
+            return 'No prior conversation.'
+        lines = []
+        for turn in self.turn_history[-5:]:
+            lines.append(
+                f'- User: "{turn["user"][:150]}" -> Routed to: {turn["agent"]}'
+            )
+        return '\n'.join(lines)
+
+    def _build_enriched_message(self, user_message: str) -> str:
+        """Prepend prior conversation context to the message sent to sub-agents."""
+        if not self.turn_history:
+            return user_message
+        context_lines = []
+        for turn in self.turn_history[-3:]:
+            context_lines.append(
+                f'[{turn["agent"]}] User: {turn["user"]}\n'
+                f'[{turn["agent"]}] Response: {turn["response"]}'
+            )
+        context = '\n\n'.join(context_lines)
+        return (
+            f'### Prior Conversation Context ###\n'
+            f'{context}\n\n'
+            f'### Current Question ###\n'
+            f'{user_message}'
+        )
+
     async def route(self, user_message: str) -> str:
         """Route a user message to the appropriate remote agent via H2OGPTE LLM.
 
@@ -150,11 +193,27 @@ class RoutingAgent:
         Returns:
             The response text from the remote agent, or a direct response.
         """
-        # Build the system prompt with current agent roster and active agent
+        # Build the system prompt with current agent roster and conversation history
         system_prompt = prompt.format(
             agents=self.agents,
-            active_agent=self.active_agent or 'None',
+            conversation_history=self._build_routing_context(),
         )
+
+        # Define the strict schema for the router
+        agent_names = list(self.remote_agent_connections.keys()) + ["none"]
+        routing_schema = {
+            "type": "object",
+            "properties": {
+                "reasoning": {
+                    "type": "string",
+                },
+                "agent_name": {
+                    "type": "string",
+                    "enum": agent_names,
+                },
+            },
+            "required": ["reasoning", "agent_name"]
+        }
 
         # Call H2OGPTE LLM for routing decision (sync call wrapped in thread)
         def _query_llm():
@@ -164,9 +223,12 @@ class RoutingAgent:
                     system_prompt=system_prompt,
                     llm=host_config["llm"],
                     llm_args=dict(
-                        response_format='json_object',
                         temperature=host_config["temperature"],
+                        response_format='json_object',
+                        guided_json=routing_schema,
                     ),
+                    rag_config={"rag_type": "llm_only"},
+                    include_chat_history="off"
                 )
             return reply.content
 
@@ -177,21 +239,18 @@ class RoutingAgent:
         try:
             decision = json.loads(llm_response)
         except json.JSONDecodeError:
-            # LLM didn't return valid JSON — fall back to delegating the
-            # original user message to the first available agent.
             return await self._fallback_delegate(user_message)
 
-        action = decision.get('action')
+        agent_name = decision.get('agent_name')
+        reasoning = decision.get('reasoning', '')
 
-        if action == 'respond':
-            return decision.get('message', 'No response provided.')
+        # Direct response (greeting / out-of-scope)
+        if not agent_name or agent_name == 'none':
+            return 'Hello! I can help you explore your Splunk environment or search event data. What would you like to do?'
 
-        elif action == 'delegate':
-            agent_name = decision.get('agent_name')
-            task = decision.get('task')
-            if not agent_name or not task:
-                return await self._fallback_delegate(user_message)
-
+        # Delegate to the named agent with enriched context
+        enriched_message = self._build_enriched_message(user_message)
+        if agent_name in self.remote_agent_connections:
             try:
                 if self._is_jira_agent(agent_name):
                     return await self._delegate_to_jira_with_upstream(
@@ -200,6 +259,11 @@ class RoutingAgent:
                 result = await self.send_message(agent_name, task)
                 if result is None:
                     return f"Error: No response received from agent '{agent_name}'."
+                self.turn_history.append({
+                    'user': user_message,
+                    'agent': agent_name,
+                    'response': result[:500],
+                })
                 return result
             except ValueError as e:
                 return f'Error: {e}'
@@ -340,10 +404,16 @@ class RoutingAgent:
             return 'Error: No remote agents available.'
         agent_name = next(iter(self.remote_agent_connections))
         print(f'Fallback: delegating to {agent_name}')
+        enriched_message = self._build_enriched_message(user_message)
         try:
-            result = await self.send_message(agent_name, user_message)
+            result = await self.send_message(agent_name, enriched_message)
             if result is None:
                 return f"Error: No response received from agent '{agent_name}'."
+            self.turn_history.append({
+                'user': user_message,
+                'agent': agent_name,
+                'response': result[:500],
+            })
             return result
         except ValueError as e:
             return f'Error: {e}'
@@ -359,7 +429,7 @@ class RoutingAgent:
                         texts.append(part.text)
                     else:
                         texts.append(f'[{part.type} content]')
-                return '\n'.join(texts)
+                return _strip_thinking('\n'.join(texts))
         if task_result.artifacts:
             texts = []
             for artifact in task_result.artifacts:
@@ -367,7 +437,7 @@ class RoutingAgent:
                     if part.type == 'text':
                         texts.append(part.text)
             if texts:
-                return '\n'.join(texts)
+                return _strip_thinking('\n'.join(texts))
         return 'Agent completed task but returned no text content.'
 
     def _extract_message_text(self, message: Message) -> str:
@@ -379,7 +449,7 @@ class RoutingAgent:
                     texts.append(part.root.text)
                 else:
                     texts.append(f'[{part.root.kind} content]')
-            return '\n'.join(texts)
+            return _strip_thinking('\n'.join(texts))
         return 'Agent returned an empty message.'
 
     async def send_message(self, agent_name: str, task: str) -> str | None:
@@ -395,7 +465,6 @@ class RoutingAgent:
         if agent_name not in self.remote_agent_connections:
             raise ValueError(f'Agent {agent_name} not found')
 
-        self.active_agent = agent_name
         client = self.remote_agent_connections[agent_name]
 
         if not client:

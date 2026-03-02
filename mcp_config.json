@@ -12,9 +12,9 @@
         "SPLUNK_MCP_TOKEN": "os.environ/SPLUNK_MCP_TOKEN",
         "NODE_TLS_REJECT_UNAUTHORIZED": "0"
       },
+      "description": "The Splunk MCP Tool is a programmatic interface that allows AI agents to discover data structures, manage system configurations, and execute Search Processing Language (SPL) queries to analyze and extract insights from machine data.",
       "tool_usage_mode": [
-        "runner",
-        "creator"
+        "runner"
       ]
     }
   }

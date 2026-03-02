@@ -5,6 +5,7 @@ import time
 
 from h2ogpte import H2OGPTE
 
+MCP_NAME = "splunk"
 MCP_CONFIG_PATH = "mcp_config.json"
 _PLACEHOLDER = "YOUR_SPLUNK_MCP_URL"
 
@@ -25,14 +26,21 @@ def _load_mcp_config() -> str:
     return content.replace(_PLACEHOLDER, splunk_mcp_url)
 
 
-def create_collection(client: H2OGPTE) -> str:
+def create_collection(client: H2OGPTE, collection_name: str, collection_desc: str) -> str:
     """Create a new H2OGPTE collection for the Splunk agent."""
     collection_id = client.create_collection(
-        name="Splunk Explorer Agent",
-        description="Splunk Explorer Agent with Splunk Remote MCP Tool Capabilities",
+        name=collection_name,
+        description=collection_desc,
     )
     print(f"Collection created: {collection_id}")
     return collection_id
+
+
+def create_chat(client: H2OGPTE, collection_id: str) -> str:
+    """Create a new chat session in the specified collection."""
+    chat_session_id = client.create_chat_session(collection_id)
+    print(f"Chat session created: {chat_session_id}")
+    return chat_session_id
 
 
 def upload_and_ingest_mcp_config(client: H2OGPTE, collection_id: str) -> str:
@@ -106,7 +114,7 @@ def setup_agent_keys(client: H2OGPTE) -> None:
 
     client.assign_agent_key_for_tool([{
         "tool_dict": {
-            "tool": MCP_CONFIG_PATH,
+            "tool": MCP_NAME,
             "keys": [{"name": name, "key_id": kid} for name, kid in existing.items()],
         }
     }])
