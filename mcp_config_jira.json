@@ -1,0 +1,21 @@
+{
+  "mcpServers": {
+    "jira": {
+      "command": "npx",
+      "args": [
+        "mcp-remote",
+        "YOUR_JIRA_MCP_URL",
+        "--header",
+        "Authorization: Bearer os.environ/JIRA_MCP_TOKEN"
+      ],
+      "env": {
+        "JIRA_MCP_TOKEN": "os.environ/JIRA_MCP_TOKEN",
+        "NODE_TLS_REJECT_UNAUTHORIZED": "0"
+      },
+      "tool_usage_mode": [
+        "runner",
+        "creator"
+      ]
+    }
+  }
+}

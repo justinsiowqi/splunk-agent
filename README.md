@@ -12,13 +12,19 @@ YOUR MACHINE
 │       │                                                  │
 │       ▼                                                  │
 │  Routing Agent (host_agent/)                             │
-│       │ H2OGPTE LLM decides which agent to call          │
-│       ├──────────────────────────┐                       │
-│       │ A2A                      │ A2A                   │
-│       ▼                          ▼                       │
-│  Inventory Agent    Query Agent                          │
-│  port 8080         port 8082                             │
-│  (discovery)       (query execution)                     │
+│       │ H2OGPTE LLM decides and orchestrates flow        │
+│       ├───────────────┬───────────────┐                  │
+│       │ A2A           │ A2A           │                  │
+│       ▼               ▼               │                  │
+│  Explorer Agent   Analyst Agent       │                  │
+│  port 8080        port 8082           │                  │
+│  (discovery)      (query execution)   │                  │
+│       └───────────────┬───────────────┘                  │
+│                       │ validated findings               │
+│                       ▼                                  │
+│                Jira Action Agent                         │
+│                port 8084                                 │
+│                (ticket actions)                          │
 │                                                          │
 │  Splunk Web UI                       port 8000           │
 │  Splunk MCP Server                   port 8089           │
@@ -34,6 +40,8 @@ YOUR MACHINE
 **Inventory Agent** — Describe the Splunk environment without executing SPL queries. Tools: `splunk_get_indexes`, `splunk_get_metadata`, `splunk_get_info`, `splunk_get_kv_store_collections`
 
 **Query Agent** — Writes and executes SPL queries. Tools: `splunk_run_query`, `splunk_get_knowledge_objects`, `splunk_get_index_info`
+
+**Jira Action Agent** — Creates and updates Jira tickets using validated findings from discovery and analysis.
 
 ## Prerequisites
 
@@ -75,6 +83,7 @@ Edit `.env` with your credentials:
 | `SPLUNK_MCP_TOKEN` | Bearer token from Splunk MCP Server app |
 | `SPLUNK_INVENTORY_AGENT_URL` | Inventory Agent URL (default: `http://localhost:8080`) |
 | `SPLUNK_QUERY_AGENT_URL` | Query Agent URL (default: `http://localhost:8082`) |
+| `JIRA_ACTION_AGENT_URL` | Jira Action Agent URL (default: `http://localhost:8084`) |
 
 ### 3. Start Splunk
 
@@ -92,7 +101,7 @@ Copy the public URL into `SPLUNK_MCP_URL` in your `.env` file.
 
 ### 5. Run the agents
 
-Open three terminals:
+Open four terminals:
 
 ```bash
 # Terminal 1 — Inventory Agent (port 8080)
@@ -101,7 +110,10 @@ uv run python -m src.agents.splunk_inventory_agent
 # Terminal 2 — Query Agent (port 8082)
 uv run python -m src.agents.splunk_query_agent
 
-# Terminal 3 — Routing Agent with Gradio UI (port 8083)
+# Terminal 3 — Jira Action Agent (port 8084)
+uv run python -m src.agents.jira_action_agent
+
+# Terminal 4 — Routing Agent with Gradio UI (port 8083)
 uv run python -m src.agents.host_agent
 ```
 
@@ -123,6 +135,11 @@ splunk-agent/
 │   │   │   ├── query_agent.py         # Query agent card definition
 │   │   │   ├── query_executor.py      # A2A Query Agent Executor
 │   │   │   └── run.py                 # Chat session and LLM querying
+│   │   ├── jira_action_agent/         # Jira Action Agent (ticket actions)
+│   │   │   ├── __main__.py            # A2A server entry point
+│   │   │   ├── jira_action_agent.py   # Agent Card definition
+│   │   │   ├── jira_action_executor.py # A2A Agent Executor
+│   │   │   └── query.py               # Chat session and LLM querying
 │   │   └── host_agent/                # Routing Agent (orchestrator + Gradio UI)
 │   │       ├── __main__.py            # Gradio UI entry point
 │   │       ├── routing_agent.py       # H2OGPTE-powered routing logic
@@ -134,11 +151,13 @@ splunk-agent/
 │   │   └── setup.py                   # Collection, ingestion, and tool registration
 │   └── prompts/
 │       ├── host_sys.md                # Routing agent system prompt
-│       ├── inventory_sys.md           # Inventory agent system prompt
-│       └── query_sys.md               # Query agent system prompt
+│       ├── explorer_sys.md            # Explorer agent system prompt
+│       ├── analyst_sys.md             # Analyst agent system prompt
+│       └── jira_action_sys.md         # Jira action agent system prompt
 ├── config/
 │   └── agents.yaml                    # Agent configuration (LLM, tools, temperature)
 ├── mcp_config.json                    # Splunk MCP server configuration
+├── mcp_config_jira.json               # Jira MCP server configuration
 ├── requirements.txt
 ├── .env.example
 ├── SETUP.md                           # Splunk & ngrok setup guide

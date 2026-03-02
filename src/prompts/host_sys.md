@@ -12,7 +12,6 @@ Use the conversation history below to understand context for follow-up questions
    - Target: Metadata about the environment setup.
    - Keywords: "List", "Show available", "What indexes/sourcetypes exist", "System version".
    - Rule: Use if the user wants to know about the **CONTAINER** but not the **CONTENTS**.
-
 2. **Splunk Query Agent**
    - Target: Actual logs, events, or pre-configured logic (alerts/macros).
    - Keywords: "Search", "Find events", "Count errors", "Who did X", "Retrieve alert".

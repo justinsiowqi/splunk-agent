@@ -18,3 +18,10 @@ agents:
     agent_type: "mcp_tool_runner"
     agent_tools:
       - "splunk"
+
+  jira_action:
+    llm: "claude-sonnet-4-5-20250929"
+    temperature: 0.0
+    agent_type: "mcp_tool_runner"
+    agent_tools:
+      - "jira"

@@ -16,8 +16,9 @@ async def main():
     print('Initializing routing agent (connecting to remote A2A agents)...')
     routing_agent = await RoutingAgent.create(
         remote_agent_addresses=[
-            os.getenv('SPLUNK_INVENTORY_AGENT_URL', 'http://localhost:8080'),
-            os.getenv('SPLUNK_QUERY_AGENT_URL', 'http://localhost:8082'),
+            os.getenv('SPLUNK_EXPLORER_AGENT_URL', 'http://localhost:8080'),
+            os.getenv('SPLUNK_ANALYST_AGENT_URL', 'http://localhost:8082'),
+            os.getenv('JIRA_ACTION_AGENT_URL', 'http://localhost:8084'),
         ]
     )
 
@@ -53,7 +54,7 @@ async def main():
         gr.ChatInterface(
             get_response_from_agent,
             title='A2A Host Agent',
-            description='This assistant routes your queries to specialized Splunk agents (Inventory and Query).',
+            description='This assistant routes your queries to Explorer, Analyst, and Jira Action agents.',
         )
 
     print('Launching Gradio interface...')
