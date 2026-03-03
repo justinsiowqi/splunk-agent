@@ -8,7 +8,6 @@ from h2ogpte import H2OGPTE
 MCP_CONFIG_PATH = "config/mcp_config.json"
 _PLACEHOLDERS = {
     "YOUR_SPLUNK_MCP_URL": "SPLUNK_MCP_URL",
-    "YOUR_JIRA_MCP_URL": "JIRA_MCP_URL",
 }
 
 def _load_mcp_config() -> str:
@@ -92,7 +91,9 @@ def setup_agent_keys(client: H2OGPTE) -> None:
         "H2OGPTE_API_KEY": os.getenv("H2OGPTE_API_KEY"),
         "H2OGPTE_ADDRESS": os.getenv("H2OGPTE_ADDRESS"),
         "SPLUNK_MCP_TOKEN": os.getenv("SPLUNK_MCP_TOKEN"),
-        "JIRA_MCP_TOKEN": os.getenv("JIRA_MCP_TOKEN"),
+        "JIRA_URL": os.getenv("JIRA_URL"),
+        "JIRA_USERNAME": os.getenv("JIRA_USERNAME"),
+        "JIRA_API_TOKEN": os.getenv("JIRA_API_TOKEN"),
     }
 
     existing = {
