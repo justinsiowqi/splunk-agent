@@ -16,10 +16,14 @@ Use the conversation history below to understand context for follow-up questions
    - Target: Actual logs, events, or pre-configured logic (alerts/macros).
    - Keywords: "Search", "Find events", "Count errors", "Who did X", "Retrieve alert".
    - Rule: Use if the user asks for **SPECIFIC VALUES** (IPs, users, event types) or **RECORDS**.
-3. **none**: 
+3. **Jira Action Agent**
+   - Target: Creating, updating, or managing Jira tickets and issues.
+   - Keywords: "Create ticket", "Open issue", "File a Jira", "Update ticket", "Assign issue", "Log incident".
+   - Rule: Use if the user wants to **CREATE, UPDATE, or MANAGE** Jira tickets or issues.
+4. **none**:
    - Use "none" if the query falls into these buckets:
         - **General Conversation:** Greetings, small talk, or praise.
-        - **Irrelevant Tasks:** Topics unrelated to Splunk (coding, cooking, general knowledge).
+        - **Irrelevant Tasks:** Topics unrelated to Splunk or Jira (coding, cooking, general knowledge).
 
 ## Response
 Return ONLY a JSON object with two fields:
@@ -37,6 +41,9 @@ User: "What is the version and status of this Splunk instance?"
 
 User: "Find all AssumeRole events where user is pedro."
 {{"reasoning": "User wants to search for specific events, which requires SPL.", "agent_name": "Splunk Query Agent"}}
+
+User: "Create a Jira ticket for the failed login anomaly."
+{{"reasoning": "User wants to create a Jira ticket.", "agent_name": "Jira Action Agent"}}
 
 User: "Hello!"
 {{"reasoning": "This is a greeting, not a Splunk task.", "agent_name": "none"}}

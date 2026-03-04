@@ -23,6 +23,7 @@ from src.core.setup import (
 )
 from .jira_agent import build_agent_card
 from .jira_executor import JiraActionAgentExecutor
+from .schema import get_jira_schema
 
 
 load_dotenv(override=True)
@@ -51,7 +52,11 @@ async def app_lifespan(context: dict[str, Any]):
         context["client"] = client
         context["collection_id"] = collection_id
 
-        print("Lifespan: H2OGPTE client and Jira MCP tools initialized.")
+        print("Lifespan: Discovering Jira schema via REST API...")
+        context["schema_context"] = get_jira_schema()
+        print(f'Lifespan: Schema discovered:\n{context["schema_context"]}')
+
+        print('Lifespan: H2OGPTE client and MCP tools initialized successfully.')
         yield
     except Exception as e:
         print(f"Lifespan: Error during initialization: {e}", file=sys.stderr)
@@ -81,6 +86,7 @@ def main(
             jira_agent_executor = JiraActionAgentExecutor(
                 client=app_context["client"],
                 collection_id=app_context["collection_id"],
+                jira_schema=app_context["schema_context"],
             )
 
             request_handler = DefaultRequestHandler(

@@ -9,9 +9,10 @@ from .run import query_jira_action_agent
 
 
 class JiraActionAgentExecutor(AgentExecutor):
-    def __init__(self, client, collection_id: str):
+    def __init__(self, client, collection_id: str, jira_schema: str):
         self.client = client
         self.collection_id = collection_id
+        self.jira_schema = jira_schema
 
     async def execute(self, context: RequestContext, event_queue: EventQueue) -> None:
         try:
@@ -21,6 +22,7 @@ class JiraActionAgentExecutor(AgentExecutor):
                 query_jira_action_agent,
                 client=self.client,
                 collection_id=self.collection_id,
+                jira_schema=self.jira_schema,
                 user_prompt=user_message,
             )
             print(f"[execute] response={response!r}")
