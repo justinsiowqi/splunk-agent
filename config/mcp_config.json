@@ -18,9 +18,10 @@
       ]
     },
     "jira": {
-      "command": "uvx",
+      "command": "npx",
       "args": [
-        "mcp-atlassian"
+        "mcp-remote",
+        "YOUR_JIRA_MCP_URL"
       ],
       "env": {
         "JIRA_URL": "os.environ/JIRA_URL",

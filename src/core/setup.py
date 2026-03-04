@@ -8,6 +8,7 @@ from h2ogpte import H2OGPTE
 MCP_CONFIG_PATH = "config/mcp_config.json"
 _PLACEHOLDERS = {
     "YOUR_SPLUNK_MCP_URL": "SPLUNK_MCP_URL",
+    "YOUR_JIRA_MCP_URL": "JIRA_MCP_URL",
 }
 
 def _load_mcp_config() -> str:
