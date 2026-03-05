@@ -22,7 +22,7 @@ from src.core.setup import (
     upload_and_ingest_mcp_config,
 )
 from .jira_agent import build_agent_card
-from .jira_executor import JiraActionAgentExecutor
+from .jira_executor import JiraTicketAgentExecutor
 from .schema import get_jira_schema
 
 
@@ -33,8 +33,8 @@ app_context: dict[str, Any] = {}
 DEFAULT_HOST = "0.0.0.0"
 DEFAULT_PORT = 8084
 DEFAULT_LOG_LEVEL = "info"
-COLLECTION_NAME = "Jira Action Agent"
-COLLECTION_DESC = "Jira Action Agent with Jira Remote MCP Tool Capabilities"
+COLLECTION_NAME = "Jira Ticket Agent"
+COLLECTION_DESC = "Jira Ticket Agent with Jira Remote MCP Tool Capabilities"
 
 
 @asynccontextmanager
@@ -72,7 +72,7 @@ def main(
     port: int = DEFAULT_PORT,
     log_level: str = DEFAULT_LOG_LEVEL,
 ):
-    """Start the Jira Action Agent A2A server."""
+    """Start the Jira Ticket Agent A2A server."""
 
     async def run_server_async():
         async with app_lifespan(app_context):
@@ -83,7 +83,7 @@ def main(
                     file=sys.stderr,
                 )
 
-            jira_agent_executor = JiraActionAgentExecutor(
+            jira_agent_executor = JiraTicketAgentExecutor(
                 client=app_context["client"],
                 collection_id=app_context["collection_id"],
                 jira_schema=app_context["schema_context"],
@@ -112,7 +112,7 @@ def main(
             uvicorn_server = uvicorn.Server(config)
 
             print(
-                f"Starting Jira Action Agent at http://{host}:{port} "
+                f"Starting Jira Ticket Agent at http://{host}:{port} "
                 f"with log-level {log_level}..."
             )
             try:

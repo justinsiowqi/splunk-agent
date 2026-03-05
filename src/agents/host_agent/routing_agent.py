@@ -27,6 +27,7 @@ from .remote_agent_connection import (
 from src.core.client import create_client
 from src.core.config import get_agent_config
 from src.core.prompt_loader import load_prompt
+from .threat_hunt import execute_threat_hunt
 
 
 load_dotenv()
@@ -200,7 +201,7 @@ class RoutingAgent:
         )
 
         # Define the strict schema for the router
-        agent_names = list(self.remote_agent_connections.keys()) + ["none"]
+        agent_names = list(self.remote_agent_connections.keys()) + ["threat_hunt", "none"]
         routing_schema = {
             "type": "object",
             "properties": {
@@ -244,9 +245,15 @@ class RoutingAgent:
         agent_name = decision.get('agent_name')
         reasoning = decision.get('reasoning', '')
 
-        # Direct response (greeting / out-of-scope)
-        if not agent_name or agent_name == 'none':
-            return 'Hello! I can help you explore your Splunk environment or search event data. What would you like to do?'
+        # Threat hunting workflow
+        if agent_name == 'threat_hunt':
+            result = await execute_threat_hunt(self, user_message)
+            self.turn_history.append({
+                'user': user_message,
+                'agent': 'threat_hunt_workflow',
+                'response': result[:500],
+            })
+            return result
 
         # Delegate to the named agent with enriched context
         enriched_message = self._build_enriched_message(user_message)
@@ -254,9 +261,9 @@ class RoutingAgent:
             try:
                 if self._is_jira_agent(agent_name):
                     return await self._delegate_to_jira_with_upstream(
-                        user_message=user_message, jira_task=task
+                        user_message=user_message, jira_task=enriched_message
                     )
-                result = await self.send_message(agent_name, task)
+                result = await self.send_message(agent_name, enriched_message)
                 if result is None:
                     return f"Error: No response received from agent '{agent_name}'."
                 self.turn_history.append({
@@ -267,11 +274,6 @@ class RoutingAgent:
                 return result
             except ValueError as e:
                 return f'Error: {e}'
-        elif action == 'delegate_workflow':
-            steps = decision.get('steps')
-            if not isinstance(steps, list) or not steps:
-                return await self._fallback_delegate(user_message)
-            return await self._execute_workflow(steps, user_message=user_message)
         else:
             # LLM returned JSON but didn't follow the format —
             # delegate the original user message to the first available agent.
@@ -515,7 +517,7 @@ def get_routing_agent_sync() -> RoutingAgent:
             remote_agent_addresses=[
                 os.getenv('SPLUNK_EXPLORER_AGENT_URL', 'http://localhost:8080'),
                 os.getenv('SPLUNK_ANALYST_AGENT_URL', 'http://localhost:8082'),
-                os.getenv('JIRA_ACTION_AGENT_URL', 'http://localhost:8084'),
+                os.getenv('JIRA_TICKET_AGENT_URL', 'http://localhost:8084'),
             ]
         )
 

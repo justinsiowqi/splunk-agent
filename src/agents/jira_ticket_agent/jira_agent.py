@@ -3,7 +3,7 @@ from a2a.types import AgentCapabilities, AgentCard, AgentSkill
 
 def build_agent_card(host: str, port: int) -> AgentCard:
     return AgentCard(
-        name="Jira Action Agent",
+        name="Jira Ticket Agent",
         description=(
             "Creates and updates Jira issues based on validated findings from "
             "discovery and analyst outputs."
@@ -18,8 +18,7 @@ def build_agent_card(host: str, port: int) -> AgentCard:
                 id="jira_actions",
                 name="Jira Ticket Actions",
                 description=(
-                    "Create, update, transition, and comment on Jira issues from "
-                    "structured findings."
+                    "Create Jira issues from structured findings."
                 ),
                 tags=["jira", "mcp", "ticketing", "incident-response"],
                 inputModes=["text/plain"],

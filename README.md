@@ -22,7 +22,7 @@ YOUR MACHINE
 │       └───────────────┬───────────────┘                  │
 │                       │ validated findings               │
 │                       ▼                                  │
-│                Jira Action Agent                         │
+│                Jira Ticket Agent                         │
 │                port 8084                                 │
 │                (ticket actions)                          │
 │                                                          │
@@ -41,7 +41,7 @@ YOUR MACHINE
 
 **Query Agent** — Writes and executes SPL queries. Tools: `splunk_run_query`, `splunk_get_knowledge_objects`, `splunk_get_index_info`
 
-**Jira Action Agent** — Creates and updates Jira tickets using validated findings from discovery and analysis.
+**Jira Ticket Agent** — Creates and updates Jira tickets using validated findings from discovery and analysis.
 
 ## Prerequisites
 
@@ -83,7 +83,7 @@ Edit `.env` with your credentials:
 | `SPLUNK_MCP_TOKEN` | Bearer token from Splunk MCP Server app |
 | `SPLUNK_INVENTORY_AGENT_URL` | Inventory Agent URL (default: `http://localhost:8080`) |
 | `SPLUNK_QUERY_AGENT_URL` | Query Agent URL (default: `http://localhost:8082`) |
-| `JIRA_ACTION_AGENT_URL` | Jira Action Agent URL (default: `http://localhost:8084`) |
+| `JIRA_TICKET_AGENT_URL` | Jira Ticket Agent URL (default: `http://localhost:8084`) |
 
 ### 3. Start Splunk
 
@@ -110,8 +110,8 @@ uv run python -m src.agents.splunk_inventory_agent
 # Terminal 2 — Query Agent (port 8082)
 uv run python -m src.agents.splunk_query_agent
 
-# Terminal 3 — Jira Action Agent (port 8084)
-uv run python -m src.agents.jira_action_agent
+# Terminal 3 — Jira Ticket Agent (port 8084)
+uv run python -m src.agents.jira_ticket_agent
 
 # Terminal 4 — Routing Agent with Gradio UI (port 8083)
 uv run python -m src.agents.host_agent
@@ -135,11 +135,11 @@ splunk-agent/
 │   │   │   ├── query_agent.py         # Query agent card definition
 │   │   │   ├── query_executor.py      # A2A Query Agent Executor
 │   │   │   └── run.py                 # Chat session and LLM querying
-│   │   ├── jira_action_agent/         # Jira Action Agent (ticket actions)
+│   │   ├── jira_ticket_agent/         # Jira Ticket Agent (ticket actions)
 │   │   │   ├── __main__.py            # A2A server entry point
-│   │   │   ├── jira_action_agent.py   # Agent Card definition
-│   │   │   ├── jira_action_executor.py # A2A Agent Executor
-│   │   │   └── query.py               # Chat session and LLM querying
+│   │   │   ├── jira_agent.py          # Agent Card definition
+│   │   │   ├── jira_executor.py       # A2A Agent Executor
+│   │   │   └── run.py                 # Chat session and LLM querying
 │   │   └── host_agent/                # Routing Agent (orchestrator + Gradio UI)
 │   │       ├── __main__.py            # Gradio UI entry point
 │   │       ├── routing_agent.py       # H2OGPTE-powered routing logic
@@ -153,7 +153,7 @@ splunk-agent/
 │       ├── host_sys.md                # Routing agent system prompt
 │       ├── explorer_sys.md            # Explorer agent system prompt
 │       ├── analyst_sys.md             # Analyst agent system prompt
-│       └── jira_action_sys.md         # Jira action agent system prompt
+│       └── ticket_sys.md              # Jira ticket agent system prompt
 ├── config/
 │   └── agents.yaml                    # Agent configuration (LLM, tools, temperature)
 ├── mcp_config.json                    # Splunk MCP server configuration

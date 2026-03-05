@@ -19,7 +19,7 @@ agents:
     agent_tools:
       - "splunk"
 
-  jira_action:
+  ticket:
     llm: "openai/gpt-oss-120b"
     temperature: 0.0
     agent_accuracy: "basic"

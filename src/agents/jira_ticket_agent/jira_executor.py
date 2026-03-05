@@ -5,10 +5,10 @@ from a2a.server.events import EventQueue
 from a2a.types import UnsupportedOperationError
 from a2a.utils import new_agent_text_message
 
-from .run import query_jira_action_agent
+from .run import query_jira_ticket_agent
 
 
-class JiraActionAgentExecutor(AgentExecutor):
+class JiraTicketAgentExecutor(AgentExecutor):
     def __init__(self, client, collection_id: str, jira_schema: str):
         self.client = client
         self.collection_id = collection_id
@@ -19,7 +19,7 @@ class JiraActionAgentExecutor(AgentExecutor):
             user_message = context.get_user_input()
             print(f"[execute] user_message={user_message!r}")
             response = await asyncio.to_thread(
-                query_jira_action_agent,
+                query_jira_ticket_agent,
                 client=self.client,
                 collection_id=self.collection_id,
                 jira_schema=self.jira_schema,
