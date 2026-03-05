@@ -143,7 +143,7 @@ splunk-agent/
 │   │   │   ├── inventory_agent.py     # Inventory agent card definition
 │   │   │   ├── inventory_executor.py  # A2A Inventory Agent Executor
 │   │   │   └── run.py                 # Chat session and LLM querying
-│   │   ├── splunk_query_agent/        # Query Agent 
+│   │   ├── splunk_query_agent/        # Query Agent
 │   │   │   ├── __main__.py            # A2A server entry point
 │   │   │   ├── query_agent.py         # Query agent card definition
 │   │   │   ├── query_executor.py      # A2A Query Agent Executor
@@ -167,6 +167,10 @@ splunk-agent/
 │       ├── explorer_sys.md            # Explorer agent system prompt
 │       ├── analyst_sys.md             # Analyst agent system prompt
 │       └── ticket_sys.md              # Jira ticket agent system prompt
+├── data/
+│   ├── ingest.py                      # Bulk-loads a dataset into Splunk with original timestamps
+│   ├── replay.py                      # Streams a dataset into Splunk in real-time, preserving event order
+│   └── delete.py                      # Deletes all events from a Splunk index
 ├── config/
 │   └── agents.yaml                    # Agent configuration (LLM, tools, temperature)
 ├── mcp_config.json                    # Splunk MCP server configuration
@@ -175,6 +179,52 @@ splunk-agent/
 ├── .env.example
 ├── SETUP.md                           # Splunk & cloudflared setup guide
 └── README.md
+```
+
+## Data Scripts
+
+All scripts live in `data/` and read credentials from `.env` automatically.
+
+### `ingest.py` — Bulk ingest
+
+Downloads a zipped dataset from a URL and sends all events to Splunk at once with their original timestamps. Useful for loading historical data quickly.
+
+```bash
+# Ingest the default Mordor dataset into the 'mordor' index
+python data/ingest.py mordor
+
+# Ingest a custom dataset
+python data/ingest.py mordor --url https://example.com/dataset.zip
+```
+
+### `replay.py` — Real-time replay
+
+Streams events into Splunk one by one, preserving the relative time gaps between events. Timestamps are shifted so the first event starts at the current time. Use `--speed` to compress the timeline for demos.
+
+```bash
+# Check the dataset time span and estimated durations before running
+python data/replay.py --info
+
+# Replay at real-time speed
+python data/replay.py mordor
+
+# Replay at 10x speed (a 25-minute attack plays out in ~2.5 minutes)
+python data/replay.py mordor --speed 10
+
+# Replay a custom dataset
+python data/replay.py mordor --speed 10 --url https://example.com/dataset.zip
+```
+
+### `delete.py` — Delete index events
+
+Deletes all events from a Splunk index using the management API. Automatically grants the `can_delete` role to the configured user if not already assigned.
+
+```bash
+# Delete all events from the 'mordor' index
+python data/delete.py mordor
+
+# Delete events matching a specific filter
+python data/delete.py mordor --query "source=aws"
 ```
 
 ## License
