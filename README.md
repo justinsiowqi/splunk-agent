@@ -16,7 +16,7 @@ YOUR MACHINE
 │       ├───────────────┬───────────────┐                  │
 │       │ A2A           │ A2A           │                  │
 │       ▼               ▼               │                  │
-│  Explorer Agent   Analyst Agent       │                  │
+│  Inventory Agent   Query Agent        │                  │
 │  port 8080        port 8082           │                  │
 │  (discovery)      (query execution)   │                  │
 │       └───────────────┬───────────────┘                  │
@@ -28,13 +28,14 @@ YOUR MACHINE
 │                                                          │
 │  Splunk Web UI                       port 8000           │
 │  Splunk MCP Server                   port 8089           │
+│  Atlassian MCP Server                port 9000           │
 │       ▲                                                  │
-│       │ ngrok tunnels this port                          │
+│       │ cloudflared tunnels these ports                  │
 └───────┼──────────────────────────────────────────────────┘
         │
-        │ public HTTPS
+        │ public HTTPS (trycloudflare.com)
         ▼
-   ngrok URL  ──►  H2OGPTE (cloud)  ──►  MCP Tool Runner
+   Cloudflare URLs  ──►  H2OGPTE (cloud)  ──►  MCP Tool Runner
 ```
 
 **Inventory Agent** — Describe the Splunk environment without executing SPL queries. Tools: `splunk_get_indexes`, `splunk_get_metadata`, `splunk_get_info`, `splunk_get_kv_store_collections`
@@ -49,9 +50,9 @@ YOUR MACHINE
 - Node.js with `npx` available in `PATH` (used by `mcp-remote`)
 - An [H2OGPTE](https://h2o.ai/platform/h2ogpte/) instance with API access
 - A running Splunk instance with the MCP Server app installed
-- [ngrok](https://ngrok.com/) to expose Splunk MCP to H2OGPTE
+- [cloudflared](https://developers.cloudflare.com/cloudflare-one/connections/connect-networks/) to expose Splunk MCP and Atlassian MCP to H2OGPTE
 
-> **First time?** See [SETUP.md](SETUP.md) for step-by-step instructions on setting up Splunk Enterprise and ngrok locally.
+> **First time?** See [SETUP.md](SETUP.md) for step-by-step instructions on setting up Splunk Enterprise and cloudflared locally.
 
 ## Quick Start
 
@@ -79,8 +80,12 @@ Edit `.env` with your credentials:
 | `H2OGPTE_ADDRESS` | H2OGPTE server URL (e.g. `https://your-instance.h2o.ai`) |
 | `SPLUNK_HEC_URL` | URL pointing to Splunk HEC (port 8088) |
 | `SPLUNK_HEC_TOKEN` | HEC token from Splunk app |
-| `SPLUNK_MCP_URL` | ngrok public URL pointing to Splunk MCP (port 8089) |
+| `SPLUNK_MCP_URL` | Cloudflare tunnel URL pointing to Splunk MCP (port 8089) |
 | `SPLUNK_MCP_TOKEN` | Bearer token from Splunk MCP Server app |
+| `JIRA_URL` | Your Jira instance URL (e.g. `https://your-instance.atlassian.net/`) |
+| `JIRA_USERNAME` | Your Jira/Atlassian email |
+| `JIRA_API_TOKEN` | Jira API token from [Atlassian API tokens](https://id.atlassian.com/manage-profile/security/api-tokens) |
+| `JIRA_MCP_URL` | Cloudflare tunnel URL pointing to Atlassian MCP (port 9000) |
 | `SPLUNK_INVENTORY_AGENT_URL` | Inventory Agent URL (default: `http://localhost:8080`) |
 | `SPLUNK_QUERY_AGENT_URL` | Query Agent URL (default: `http://localhost:8082`) |
 | `JIRA_TICKET_AGENT_URL` | Jira Ticket Agent URL (default: `http://localhost:8084`) |
@@ -91,13 +96,21 @@ Edit `.env` with your credentials:
 /Applications/Splunk/bin/splunk start
 ```
 
-### 4. Start ngrok
+### 4. Start cloudflared tunnels
+
+Open two terminals:
 
 ```bash
-ngrok http https://localhost:8089
+# Terminal 1 — Splunk MCP (port 8089)
+cloudflared tunnel --url https://localhost:8089
+
+# Terminal 2 — Atlassian MCP (port 9000)
+cloudflared tunnel --url http://localhost:9000
 ```
 
-Copy the public URL into `SPLUNK_MCP_URL` in your `.env` file.
+Each tunnel prints a unique `https://<random>.trycloudflare.com` URL. Copy them into your `.env` file:
+- Splunk URL → `SPLUNK_MCP_URL` (append `/services/mcp`)
+- Atlassian URL → `JIRA_MCP_URL` (append `/mcp`)
 
 ### 5. Run the agents
 
@@ -160,7 +173,7 @@ splunk-agent/
 ├── mcp_config_jira.json               # Jira MCP server configuration
 ├── requirements.txt
 ├── .env.example
-├── SETUP.md                           # Splunk & ngrok setup guide
+├── SETUP.md                           # Splunk & cloudflared setup guide
 └── README.md
 ```
 

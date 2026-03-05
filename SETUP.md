@@ -1,6 +1,6 @@
-# Splunk & ngrok Setup Guide
+# Splunk & Cloudflared Setup Guide
 
-Step-by-step instructions for setting up Splunk Enterprise locally and exposing it via ngrok. Once complete, return to the [README](README.md#quick-start) to configure and run the agents.
+Step-by-step instructions for setting up Splunk Enterprise locally and exposing it via cloudflared. Once complete, return to the [README](README.md#quick-start) to configure and run the agents.
 
 ## 1. Splunk Enterprise
 
@@ -68,34 +68,62 @@ python ingest.py mordor --url <zip_url>
 2. Click **Create Splunk MCP Encrypted Token** > **Create**
 3. Copy the **MCP Server Endpoint** (typically `https://localhost:8089`)
 
-## 2. ngrok
+## 2. Cloudflared
 
-ngrok creates a public HTTPS tunnel so H2OGPTE (in the cloud) can reach your local Splunk MCP server.
+Cloudflared creates public HTTPS tunnels so H2OGPTE (in the cloud) can reach your local Splunk MCP and Atlassian MCP servers. Unlike ngrok, cloudflared supports multiple simultaneous tunnels on the free tier.
 
 ### Install
 
-1. Create an account at [ngrok.com](https://ngrok.com)
-2. Install and authenticate:
-
 ```bash
 # macOS
-brew install ngrok
-ngrok config add-authtoken YOUR_AUTH_TOKEN
+brew install cloudflared
 ```
 
-For other platforms, see the [ngrok docs](https://ngrok.com/docs/getting-started/).
+For other platforms, see the [cloudflared docs](https://developers.cloudflare.com/cloudflare-one/connections/connect-networks/downloads/).
 
-### Start the Tunnel
+### Cloudflared Setup
+
+1. Go to [Cloudflare Zero Trust dashboard](https://one.dash.cloudflare.com/) → **Networking** → **Tunnels** → **Create Tunnel**
+2. Enter a tunnel name and select your operating system
+3. Select **Run Terminal (Manual)** to get the run command with your token
+
+### Start the Tunnels
+
+Open two terminals:
 
 ```bash
-ngrok http https://localhost:8089
+# Terminal 1 — Splunk MCP (port 8089)
+cloudflared tunnel --url https://localhost:8089
+
+# Terminal 2 — Atlassian MCP (port 9000)
+cloudflared tunnel --url http://localhost:9000
 ```
 
-The displayed public URL (e.g. `https://abcd-1234.ngrok-free.app`) is your `SPLUNK_MCP_URL`.
+Each tunnel prints a unique URL (e.g. `https://random-words.trycloudflare.com`).
+
+### Update `.env`
+
+Copy the tunnel URLs into your `.env` file, appending the MCP endpoint paths:
+
+```
+SPLUNK_MCP_URL=https://<splunk-tunnel>.trycloudflare.com/services/mcp
+JIRA_MCP_URL=https://<jira-tunnel>.trycloudflare.com/mcp
+```
 
 ### Verify
 
-Open the ngrok URL in your browser to confirm it reaches Splunk.
+```bash
+# Test Splunk MCP
+curl https://<splunk-tunnel>.trycloudflare.com/services/mcp
+
+# Test Atlassian MCP
+curl -X POST https://<jira-tunnel>.trycloudflare.com/mcp \
+  -H "Content-Type: application/json" \
+  -H "Accept: application/json, text/event-stream" \
+  -d '{"jsonrpc":"2.0","id":1,"method":"initialize","params":{"protocolVersion":"2024-11-05","capabilities":{},"clientInfo":{"name":"test","version":"1.0.0"}}}'
+```
+
+> **Note:** Quick tunnel URLs change every time you restart cloudflared. Update `.env` with the new URLs after each restart.
 
 ---
 
