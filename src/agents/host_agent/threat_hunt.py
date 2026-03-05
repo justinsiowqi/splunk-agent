@@ -1,12 +1,3 @@
-"""Threat-hunting workflow: discovery -> investigation -> ticket creation.
-
-The user provides the hypothesis directly. The workflow sends it through
-three existing agents sequentially:
-  1. Splunk Inventory Agent  – discover relevant data sources
-  2. Splunk Query Agent      – run SPL to investigate the hypothesis
-  3. Jira Ticket Agent       – create an incident ticket with findings
-"""
-
 from __future__ import annotations
 
 from typing import TYPE_CHECKING
