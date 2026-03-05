@@ -12,8 +12,8 @@
         "SPLUNK_MCP_TOKEN": "os.environ/SPLUNK_MCP_TOKEN",
         "NODE_TLS_REJECT_UNAUTHORIZED": "0"
       },
-      "description": "The Splunk MCP Tool is a programmatic interface that allows AI agents to discover data structures, manage system configurations, and execute Search Processing Language (SPL) queries to analyze and extract insights from machine data.",
-      "tool_usage_mode": [
+      "description": "A direct system-level service for executing SPL queries and retrieving Splunk schema. This is a system-orchestrated tool: invoke it directly using the tool-calling interface. Do not attempt to import this as a Python library or write code to interact with it; simply pass the required arguments to the system runner.",
+      "tool_usage_mode": [  
         "runner"
       ]
     },
@@ -29,7 +29,7 @@
         "JIRA_API_TOKEN": "os.environ/JIRA_API_TOKEN",
         "NODE_TLS_REJECT_UNAUTHORIZED": "0"
       },
-      "description": "The Jira MCP Tool is a programmatic interface that allows AI agents to create, update, search, and manage Jira issues, projects, and workflows.",
+      "description": "A system-level capability for issue management in Jira. Use this tool directly via the system execution protocol for searching and creating tickets. Do not attempt to import this as a Python library or write code to interact with it; simply pass the required arguments to the system runner.",
       "tool_usage_mode": [
         "runner"
       ]
