@@ -2,6 +2,7 @@ from __future__ import annotations
 
 from typing import TYPE_CHECKING
 
+from a2a.client.errors import A2AClientTimeoutError
 from src.core.prompt_loader import load_message
 
 if TYPE_CHECKING:
@@ -56,9 +57,13 @@ async def execute_threat_hunt(
         hypothesis=user_message,
     )
     inventory_agent = _find_agent_by_type(connections, "inventory")
-    discovery_result = await routing_agent.send_message(
-        inventory_agent, discovery_msg
-    )
+    try:
+        discovery_result = await routing_agent.send_message(
+            inventory_agent, discovery_msg
+        )
+    except A2AClientTimeoutError:
+        print("[Threat Hunt] Phase 1 timed out.")
+        return "Error: Inventory agent timed out during discovery phase. Please try again."
     if discovery_result is None:
         return "Error: No response from inventory agent during discovery phase."
     workflow_state["discovery"] = discovery_result
@@ -70,9 +75,17 @@ async def execute_threat_hunt(
         discovery_findings=workflow_state["discovery"],
     )
     query_agent = _find_agent_by_type(connections, "query")
-    investigation_result = await routing_agent.send_message(
-        query_agent, investigation_msg
-    )
+    try:
+        investigation_result = await routing_agent.send_message(
+            query_agent, investigation_msg
+        )
+    except A2AClientTimeoutError:
+        print("[Threat Hunt] Phase 2 timed out.")
+        workflow_state["investigation"] = (
+            "Error: Query agent timed out during investigation phase."
+        )
+        workflow_state["ticket"] = "Skipped: Investigation phase did not complete."
+        return _format_report(workflow_state)
     if investigation_result is None:
         return "Error: No response from query agent during investigation phase."
     workflow_state["investigation"] = investigation_result
@@ -85,7 +98,14 @@ async def execute_threat_hunt(
         investigation_evidence=workflow_state["investigation"],
     )
     jira_agent = _find_agent_by_type(connections, "jira")
-    ticket_result = await routing_agent.send_message(jira_agent, ticket_msg)
+    try:
+        ticket_result = await routing_agent.send_message(jira_agent, ticket_msg)
+    except A2AClientTimeoutError:
+        print("[Threat Hunt] Phase 3 timed out.")
+        workflow_state["ticket"] = (
+            "Error: Jira agent timed out during ticket creation phase."
+        )
+        return _format_report(workflow_state)
     if ticket_result is None:
         return "Error: No response from Jira agent during ticket creation phase."
     workflow_state["ticket"] = ticket_result
