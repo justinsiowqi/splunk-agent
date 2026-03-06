@@ -1,48 +1,50 @@
 # Splunk Multi-Agent System
 
-A multi-agent system that integrates [H2OGPTE](https://h2o.ai/platform/h2ogpte/) with Splunk via the [Model Context Protocol (MCP)](https://modelcontextprotocol.io/) and the [Agent-to-Agent (A2A)](https://github.com/google/A2A) protocol. Users can query Splunk data using natural language through a Gradio UI, with requests routed to specialized agents.
+A multi-agent system that integrates [H2OGPTE](https://h2o.ai/platform/h2ogpte/) with Splunk and Jira via the [Model Context Protocol (MCP)](https://modelcontextprotocol.io/) and the [Agent-to-Agent (A2A)](https://github.com/google/A2A) protocol. Users can query Splunk data and create Jira tickets using natural language through a Gradio UI, with requests routed to specialized agents.
 
 ## Architecture
 
 ```
 YOUR MACHINE
-┌──────────────────────────────────────────────────────────┐
-│                                                          │
-│  User (Gradio UI)                    port 8083           │
-│       │                                                  │
-│       ▼                                                  │
-│  Routing Agent (host_agent/)                             │
-│       │ H2OGPTE LLM decides and orchestrates flow        │
-│       ├───────────────┬───────────────┐                  │
-│       │ A2A           │ A2A           │                  │
-│       ▼               ▼               │                  │
-│  Inventory Agent   Query Agent        │                  │
-│  port 8080        port 8082           │                  │
-│  (discovery)      (query execution)   │                  │
-│       └───────────────┬───────────────┘                  │
-│                       │ validated findings               │
-│                       ▼                                  │
-│                Jira Ticket Agent                         │
-│                port 8084                                 │
-│                (ticket actions)                          │
-│                                                          │
-│  Splunk Web UI                       port 8000           │
-│  Splunk MCP Server                   port 8089           │
-│  Atlassian MCP Server                port 9000           │
-│       ▲                                                  │
-│       │ cloudflared tunnels these ports                  │
-└───────┼──────────────────────────────────────────────────┘
+┌─────────────────────────────────────────────────────────────────┐
+│                                                                 │
+│  User (Gradio UI)                              port 8083        │
+│       │                                                         │
+│       ▼                                                         │
+│  Routing Agent (host_agent/)                                    │
+│       │ H2OGPTE LLM decides which agent(s) to invoke            │
+│       │                                                         │
+│       ├──── A2A ────► Inventory Agent          port 8080        │
+│       │                (discovery & metadata)                   │
+│       │                                                         │
+│       ├──── A2A ────► Query Agent              port 8082        │
+│       │                (SPL query execution)                    │
+│       │                                                         │
+│       └──── A2A ────► Jira Ticket Agent        port 8084        │
+│                        (ticket actions)                         │
+│                                                                 │
+│  Workflows:                                                     │
+│    Single agent  ─  Route directly to one agent                 │
+│    Jira          ─  Upstream agent → Jira (grounded in findings)│
+│    Threat hunt   ─  Inventory → Query → Jira (3-phase)          │
+│                                                                 │
+│  Splunk Web UI                                 port 8000        │
+│  Splunk MCP Server                             port 8089        │
+│  Atlassian MCP Server                          port 9000        │
+│       ▲                                                         │
+│       │ cloudflared tunnels these ports                         │
+└───────┼─────────────────────────────────────────────────────────┘
         │
         │ public HTTPS (trycloudflare.com)
         ▼
    Cloudflare URLs  ──►  H2OGPTE (cloud)  ──►  MCP Tool Runner
 ```
 
-**Inventory Agent** — Describe the Splunk environment without executing SPL queries. Tools: `splunk_get_indexes`, `splunk_get_metadata`, `splunk_get_info`, `splunk_get_kv_store_collections`
+**Inventory Agent** — Discovers the Splunk environment. Tools: `splunk_get_indexes`, `splunk_get_metadata`, `splunk_get_info`, `splunk_get_kv_store_collections`, `splunk_run_query`, `splunk_get_index_info`
 
-**Query Agent** — Writes and executes SPL queries. Tools: `splunk_run_query`, `splunk_get_knowledge_objects`, `splunk_get_index_info`
+**Query Agent** — Writes and executes SPL queries. Tools: `splunk_run_query`, `splunk_get_knowledge_objects`
 
-**Jira Ticket Agent** — Creates and updates Jira tickets using validated findings from discovery and analysis.
+**Jira Ticket Agent** — Creates and updates Jira tickets. Tools: `jira_create_issue`
 
 ## Prerequisites
 
@@ -50,9 +52,11 @@ YOUR MACHINE
 - Node.js with `npx` available in `PATH` (used by `mcp-remote`)
 - An [H2OGPTE](https://h2o.ai/platform/h2ogpte/) instance with API access
 - A running Splunk instance with the MCP Server app installed
+- A [Jira](https://www.atlassian.com/software/jira) instance with an [API token](https://id.atlassian.com/manage-profile/security/api-tokens)
+- [mcp-atlassian](https://mcp-atlassian.soomiles.com/docs) (`uvx mcp-atlassian`)
 - [cloudflared](https://developers.cloudflare.com/cloudflare-one/connections/connect-networks/) to expose Splunk MCP and Atlassian MCP to H2OGPTE
 
-> **First time?** See [SETUP.md](SETUP.md) for step-by-step instructions on setting up Splunk Enterprise and cloudflared locally.
+> **First time?** See [SETUP.md](SETUP.md) for step-by-step instructions on setting up Splunk Enterprise, Atlassian MCP, and cloudflared locally.
 
 ## Quick Start
 
@@ -78,14 +82,20 @@ Edit `.env` with your credentials:
 |---|---|
 | `H2OGPTE_API_KEY` | Your H2OGPTE API key |
 | `H2OGPTE_ADDRESS` | H2OGPTE server URL (e.g. `https://your-instance.h2o.ai`) |
-| `SPLUNK_HEC_URL` | URL pointing to Splunk HEC (port 8088) |
 | `SPLUNK_HEC_TOKEN` | HEC token from Splunk app |
-| `SPLUNK_MCP_URL` | Cloudflare tunnel URL pointing to Splunk MCP (port 8089) |
+| `SPLUNK_HEC_URL` | URL pointing to Splunk HEC (port 8088) |
+| `SPLUNK_HOST` | Splunk host address (default: `localhost`) |
+| `SPLUNK_MGMT_PORT` | Splunk management port (default: `8089`) |
+| `SPLUNK_USERNAME` | Splunk admin username |
+| `SPLUNK_PASSWORD` | Splunk admin password |
 | `SPLUNK_MCP_TOKEN` | Bearer token from Splunk MCP Server app |
+| `SPLUNK_MCP_URL` | Cloudflare tunnel URL pointing to Splunk MCP |
 | `JIRA_URL` | Your Jira instance URL (e.g. `https://your-instance.atlassian.net/`) |
 | `JIRA_USERNAME` | Your Jira/Atlassian email |
 | `JIRA_API_TOKEN` | Jira API token from [Atlassian API tokens](https://id.atlassian.com/manage-profile/security/api-tokens) |
-| `JIRA_MCP_URL` | Cloudflare tunnel URL pointing to Atlassian MCP (port 9000) |
+| `JIRA_MCP_URL` | Cloudflare tunnel URL pointing to Atlassian MCP |
+| `A2A_HOST` | A2A server host (default: `localhost`) |
+| `A2A_PORT` | A2A server port (default: `8080`) |
 | `SPLUNK_INVENTORY_AGENT_URL` | Inventory Agent URL (default: `http://localhost:8080`) |
 | `SPLUNK_QUERY_AGENT_URL` | Query Agent URL (default: `http://localhost:8082`) |
 | `JIRA_TICKET_AGENT_URL` | Jira Ticket Agent URL (default: `http://localhost:8084`) |
@@ -96,38 +106,30 @@ Edit `.env` with your credentials:
 /Applications/Splunk/bin/splunk start
 ```
 
-### 4. Start cloudflared tunnels
-
-Open two terminals:
+### 4. Start Atlassian MCP
 
 ```bash
-# Terminal 1 — Splunk MCP (port 8089)
-cloudflared tunnel --url https://localhost:8089
-
-# Terminal 2 — Atlassian MCP (port 9000)
-cloudflared tunnel --url http://localhost:9000
+uvx mcp-atlassian --transport streamable-http --port 9000 -vv
 ```
 
-Each tunnel prints a unique `https://<random>.trycloudflare.com` URL. Copy them into your `.env` file:
-- Splunk URL → `SPLUNK_MCP_URL` (append `/services/mcp`)
-- Atlassian URL → `JIRA_MCP_URL` (append `/mcp`)
+### 5. Start cloudflared tunnels
 
-### 5. Run the agents
-
-Open four terminals:
+Open two separate terminals:
 
 ```bash
-# Terminal 1 — Inventory Agent (port 8080)
-uv run python -m src.agents.splunk_inventory_agent
+# Terminal 1 — Splunk MCP
+cloudflared tunnel --url https://localhost:8089 --no-tls-verify
 
-# Terminal 2 — Query Agent (port 8082)
-uv run python -m src.agents.splunk_query_agent
+# Terminal 2 — Atlassian MCP
+cloudflared tunnel --url http://localhost:9000 --no-tls-verify
+```
 
-# Terminal 3 — Jira Ticket Agent (port 8084)
-uv run python -m src.agents.jira_ticket_agent
+Copy the generated tunnel URLs into `.env` (`SPLUNK_MCP_URL` and `JIRA_MCP_URL`).
 
-# Terminal 4 — Routing Agent with Gradio UI (port 8083)
-uv run python -m src.agents.host_agent
+### 6. Run the agents
+
+```bash
+./run_agents.sh
 ```
 
 Open http://localhost:8083 in your browser.
@@ -147,16 +149,19 @@ splunk-agent/
 │   │   │   ├── __main__.py            # A2A server entry point
 │   │   │   ├── query_agent.py         # Query agent card definition
 │   │   │   ├── query_executor.py      # A2A Query Agent Executor
+│   │   │   ├── schema.py              # Query request/response schemas
 │   │   │   └── run.py                 # Chat session and LLM querying
-│   │   ├── jira_ticket_agent/         # Jira Ticket Agent (ticket actions)
+│   │   ├── jira_ticket_agent/         # Jira Ticket Agent
 │   │   │   ├── __main__.py            # A2A server entry point
-│   │   │   ├── jira_agent.py          # Agent Card definition
+│   │   │   ├── jira_agent.py          # Agent card definition
 │   │   │   ├── jira_executor.py       # A2A Agent Executor
+│   │   │   ├── schema.py              # Jira request/response schemas
 │   │   │   └── run.py                 # Chat session and LLM querying
 │   │   └── host_agent/                # Routing Agent (orchestrator + Gradio UI)
 │   │       ├── __main__.py            # Gradio UI entry point
 │   │       ├── routing_agent.py       # H2OGPTE-powered routing logic
-│   │       └── remote_agent_connection.py # A2A client connections
+│   │       ├── remote_agent_connection.py # A2A client connections
+│   │       └── threat_hunt.py         # Multi-phase threat hunting workflow
 │   ├── core/
 │   │   ├── client.py                  # H2OGPTE client initialization
 │   │   ├── config.py                  # YAML config loader
@@ -164,67 +169,27 @@ splunk-agent/
 │   │   └── setup.py                   # Collection, ingestion, and tool registration
 │   └── prompts/
 │       ├── host_sys.md                # Routing agent system prompt
-│       ├── explorer_sys.md            # Explorer agent system prompt
-│       ├── analyst_sys.md             # Analyst agent system prompt
-│       └── ticket_sys.md              # Jira ticket agent system prompt
+│       ├── inventory_sys.md           # Inventory agent system prompt
+│       ├── inventory_message.md       # Inventory agent message template
+│       ├── query_sys.md               # Query agent system prompt
+│       ├── query_message.md           # Query agent message template
+│       ├── ticket_sys.md              # Jira ticket agent system prompt
+│       └── ticket_message.md          # Jira ticket agent message template
 ├── data/
-│   ├── ingest.py                      # Bulk-loads a dataset into Splunk with original timestamps
-│   ├── replay.py                      # Streams a dataset into Splunk in real-time, preserving event order
+│   ├── README.md                      # Data scripts usage guide
+│   ├── ingest.py                      # Bulk-loads a dataset into Splunk
+│   ├── replay.py                      # Streams a dataset into Splunk in real-time
 │   └── delete.py                      # Deletes all events from a Splunk index
 ├── config/
-│   └── agents.yaml                    # Agent configuration (LLM, tools, temperature)
-├── mcp_config.json                    # Splunk MCP server configuration
-├── mcp_config_jira.json               # Jira MCP server configuration
+│   ├── agents.yaml                    # Agent configuration (LLM, tools, temperature)
+│   └── mcp_config.json                # Splunk MCP server configuration
+├── run_agents.sh                      # Script to start all agents
 ├── requirements.txt
 ├── .env.example
-├── SETUP.md                           # Splunk & cloudflared setup guide
+├── .gitignore
+├── LICENSE
+├── SETUP.md                           # Splunk, Atlassian MCP & cloudflared setup guide
 └── README.md
-```
-
-## Data Scripts
-
-All scripts live in `data/` and read credentials from `.env` automatically.
-
-### `ingest.py` — Bulk ingest
-
-Downloads a zipped dataset from a URL and sends all events to Splunk at once with their original timestamps. Useful for loading historical data quickly.
-
-```bash
-# Ingest the default Mordor dataset into the 'mordor' index
-python data/ingest.py mordor
-
-# Ingest a custom dataset
-python data/ingest.py mordor --url https://example.com/dataset.zip
-```
-
-### `replay.py` — Real-time replay
-
-Streams events into Splunk one by one, preserving the relative time gaps between events. Timestamps are shifted so the first event starts at the current time. Use `--speed` to compress the timeline for demos.
-
-```bash
-# Check the dataset time span and estimated durations before running
-python data/replay.py --info
-
-# Replay at real-time speed
-python data/replay.py mordor
-
-# Replay at 10x speed (a 25-minute attack plays out in ~2.5 minutes)
-python data/replay.py mordor --speed 10
-
-# Replay a custom dataset
-python data/replay.py mordor --speed 10 --url https://example.com/dataset.zip
-```
-
-### `delete.py` — Delete index events
-
-Deletes all events from a Splunk index using the management API. Automatically grants the `can_delete` role to the configured user if not already assigned.
-
-```bash
-# Delete all events from the 'mordor' index
-python data/delete.py mordor
-
-# Delete events matching a specific filter
-python data/delete.py mordor --query "source=aws"
 ```
 
 ## License
