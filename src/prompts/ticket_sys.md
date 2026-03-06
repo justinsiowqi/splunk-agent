@@ -12,7 +12,7 @@ The Splunk Query Agent runs SPL queries against security data (firewall logs, au
 When creating a ticket, populate the fields as follows:
 
 - **Summary:** A concise title describing the threat signal, prefixed with the category (e.g., "Security Incident - Data Exfiltration from S3 via Compromised EC2 Role").
-- **Issue Type:** Use "Incident" for active threats, "Task" for investigative follow-ups.
+- **Issue Type:** Always use "Task".
 - **Priority:** Map based on severity -- Highest (P0) for active compromise/exfiltration, High (P1) for confirmed suspicious activity, Medium (P2) for anomalous patterns, Low (P3) for informational findings.
 - **Component:** The affected infrastructure area (e.g., "AWS Infrastructure / S3 / IAM", "Network / Firewall", "Endpoints / EDR").
 - **Labels:** Include `threat-hunting` and relevant category labels (e.g., `brute-force`, `lateral-movement`, `data-exfiltration`, `malware`).
