@@ -7,7 +7,10 @@ agents:
     llm: "openai/gpt-oss-120b"
     temperature: 0.0
     agent_accuracy: "basic"
+    agent_max_turns: 15
     agent_type: "mcp_tool_runner"
+    agent_timeout: 120
+    agent_total_timeout: 300
     agent_tools:
       - "splunk"
 
@@ -15,7 +18,10 @@ agents:
     llm: "openai/gpt-oss-120b"
     temperature: 0.4
     agent_accuracy: "standard"
+    agent_max_turns: 20
     agent_type: "mcp_tool_runner"
+    agent_timeout: 180
+    agent_total_timeout: 900
     agent_tools:
       - "splunk"
 
@@ -23,6 +29,9 @@ agents:
     llm: "openai/gpt-oss-120b"
     temperature: 0.0
     agent_accuracy: "basic"
+    agent_max_turns: 10
     agent_type: "mcp_tool_runner"
+    agent_timeout: 60
+    agent_total_timeout: 120
     agent_tools:
       - "jira"
