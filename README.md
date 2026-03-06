@@ -100,37 +100,13 @@ Edit `.env` with your credentials:
 | `SPLUNK_QUERY_AGENT_URL` | Query Agent URL (default: `http://localhost:8082`) |
 | `JIRA_TICKET_AGENT_URL` | Jira Ticket Agent URL (default: `http://localhost:8084`) |
 
-### 3. Start Splunk
+### 3. Start everything
 
 ```bash
-/Applications/Splunk/bin/splunk start
+./start.sh
 ```
 
-### 4. Start Atlassian MCP
-
-```bash
-uvx mcp-atlassian --transport streamable-http --port 9000 -vv
-```
-
-### 5. Start cloudflared tunnels
-
-Open two separate terminals:
-
-```bash
-# Terminal 1 — Splunk MCP
-cloudflared tunnel --url https://localhost:8089 --no-tls-verify
-
-# Terminal 2 — Atlassian MCP
-cloudflared tunnel --url http://localhost:9000 --no-tls-verify
-```
-
-Copy the generated tunnel URLs into `.env` (`SPLUNK_MCP_URL` and `JIRA_MCP_URL`).
-
-### 6. Run the agents
-
-```bash
-./run_agents.sh
-```
+This starts Splunk, Atlassian MCP, cloudflared tunnels, and all agents. The script automatically detects the cloudflared tunnel URLs and updates `.env` (`SPLUNK_MCP_URL` and `JIRA_MCP_URL`) before launching the agents.
 
 Open http://localhost:8083 in your browser.
 
@@ -183,7 +159,8 @@ splunk-agent/
 ├── config/
 │   ├── agents.yaml                    # Agent configuration (LLM, tools, temperature)
 │   └── mcp_config.json                # Splunk MCP server configuration
-├── run_agents.sh                      # Script to start all agents
+├── start.sh                           # Start everything (Splunk, MCP, tunnels, agents)
+├── run_agents.sh                      # Start agents only
 ├── requirements.txt
 ├── .env.example
 ├── .gitignore
