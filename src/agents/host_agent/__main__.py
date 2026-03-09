@@ -13,7 +13,7 @@ load_dotenv(override=True)
 CUSTOM_CSS = """
 /* ── Global ── */
 .gradio-container {
-    max-width: 2100px !important;
+    max-width: 1400px !important;
     margin: auto !important;
     padding: 24px 48px !important;
 }
@@ -113,6 +113,26 @@ CUSTOM_CSS = """
 }
 .examples {
     gap: 10px !important;
+}
+
+/* ── Scrollbar (dark theme) ── */
+* {
+    scrollbar-color: #3d3d50 transparent;
+    scrollbar-width: thin;
+}
+*::-webkit-scrollbar {
+    width: 8px;
+    height: 8px;
+}
+*::-webkit-scrollbar-track {
+    background: transparent;
+}
+*::-webkit-scrollbar-thumb {
+    background: #3d3d50;
+    border-radius: 4px;
+}
+*::-webkit-scrollbar-thumb:hover {
+    background: #4d4d60;
 }
 
 /* ── Footer ── */
@@ -285,7 +305,6 @@ async def main():
             get_response_from_agent,
             chatbot=chatbot,
             examples=SUGGESTION_QUERIES,
-            fill_width=True,
         )
 
         # Footer
