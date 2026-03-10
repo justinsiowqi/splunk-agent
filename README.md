@@ -94,8 +94,6 @@ Edit `.env` with your credentials:
 | `JIRA_USERNAME` | Your Jira/Atlassian email |
 | `JIRA_API_TOKEN` | Jira API token from [Atlassian API tokens](https://id.atlassian.com/manage-profile/security/api-tokens) |
 | `JIRA_MCP_URL` | Cloudflare tunnel URL pointing to Atlassian MCP |
-| `A2A_HOST` | A2A server host (default: `localhost`) |
-| `A2A_PORT` | A2A server port (default: `8080`) |
 | `SPLUNK_INVENTORY_AGENT_URL` | Inventory Agent URL (default: `http://localhost:8080`) |
 | `SPLUNK_QUERY_AGENT_URL` | Query Agent URL (default: `http://localhost:8082`) |
 | `JIRA_TICKET_AGENT_URL` | Jira Ticket Agent URL (default: `http://localhost:8084`) |
