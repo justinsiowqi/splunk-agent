@@ -4,41 +4,7 @@ A multi-agent system that integrates [H2OGPTE](https://h2o.ai/platform/h2ogpte/)
 
 ## Architecture
 
-```
-YOUR MACHINE
-┌─────────────────────────────────────────────────────────────────┐
-│                                                                 │
-│  User (Gradio UI)                              port 8083        │
-│       │                                                         │
-│       ▼                                                         │
-│  Routing Agent (host_agent/)                                    │
-│       │ H2OGPTE LLM decides which agent(s) to invoke            │
-│       │                                                         │
-│       ├──── A2A ────► Inventory Agent          port 8080        │
-│       │                (discovery & metadata)                   │
-│       │                                                         │
-│       ├──── A2A ────► Query Agent              port 8082        │
-│       │                (SPL query execution)                    │
-│       │                                                         │
-│       └──── A2A ────► Jira Ticket Agent        port 8084        │
-│                        (ticket actions)                         │
-│                                                                 │
-│  Workflows:                                                     │
-│    Single agent  ─  Route directly to one agent                 │
-│    Jira          ─  Upstream agent → Jira (grounded in findings)│
-│    Threat hunt   ─  Inventory → Query → Jira (3-phase)          │
-│                                                                 │
-│  Splunk Web UI                                 port 8000        │
-│  Splunk MCP Server                             port 8089        │
-│  Atlassian MCP Server                          port 9000        │
-│       ▲                                                         │
-│       │ cloudflared tunnels these ports                         │
-└───────┼─────────────────────────────────────────────────────────┘
-        │
-        │ public HTTPS (trycloudflare.com)
-        ▼
-   Cloudflare URLs  ──►  H2OGPTE (cloud)  ──►  MCP Tool Runner
-```
+![Architecture Diagram](assets/architecture.png)
 
 **Inventory Agent** — Discovers the Splunk environment. Tools: `splunk_get_indexes`, `splunk_get_metadata`, `splunk_get_info`, `splunk_get_kv_store_collections`, `splunk_run_query`, `splunk_get_index_info`
 
