@@ -74,7 +74,7 @@ echo "Starting Splunk..."
 echo ""
 
 # 2. Start Atlassian MCP
-open_terminal "Atlassian MCP (port 9000)" "uvx mcp-atlassian --transport streamable-http --port 9000 -vv"
+open_terminal "Atlassian MCP (port 9000)" "ENABLED_TOOLS=jira_create_issue uvx mcp-atlassian --transport streamable-http --port 9000 -vv"
 wait_for_port "Atlassian MCP" 9000
 
 # 3. Start cloudflared tunnels in background and capture URLs
